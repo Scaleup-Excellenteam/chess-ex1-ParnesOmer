@@ -13,11 +13,6 @@ public:
     ~Rook() = default;
 
     bool isValidMove(int startX, int startY, int endX, int endY, const Board& board) const override{
-        // Check if the move is in the same row or column
-        if (startX != endX && startY != endY) {
-            return false;
-        }
-
         // Check if the path is free
         if (startX == endX) {
             // Move along a column
@@ -35,6 +30,9 @@ public:
                     return false; // There is a tool on the way
                 }
             }
+        }else {
+            // Check if the move is in the same row or column
+            return false;
         }
 
         // If we passed the tests, the move is legal

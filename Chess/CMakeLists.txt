@@ -24,6 +24,14 @@ add_executable (Chess
         src/Board.cpp
         include/Rook.h
         src/Rook.cpp
+        include/Bishop.h
+        src/Bishop.cpp
+        include/Knight.h
+        src/Knight.cpp
+        include/Queen.h
+        src/Queen.cpp
+        include/King.h
+        src/King.cpp
 )
 
 
