@@ -32,6 +32,10 @@ add_executable (Chess
         src/Queen.cpp
         include/King.h
         src/King.cpp
+        include/Pawn.h
+        src/Pawn.cpp
+        include/KingEnemies.h
+        src/KingEnemies.cpp
 )
 
 

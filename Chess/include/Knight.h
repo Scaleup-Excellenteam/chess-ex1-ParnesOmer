@@ -9,17 +9,12 @@
 
 class Knight : public Piece{
 public:
-    Knight(int i, int j, PieceColor color) : Piece(i, j, color) {}
-    ~Knight() = default;
+    Knight(int i, int j, PieceColor color);
+    ~Knight() override = default;
 
-    bool isValidMove(int startX, int startY, int endX, int endY, const Board& board) const override {
-        if((abs(endX - startX) == 2 && abs(endY - startY) == 1) ||
-        (abs(endX - startX) == 1 && abs(endY - startY) == 2)){
-            //Checks whether the move was legal in an L-shape
-            return true;
-        }
-        return false;
-    }
+    bool isValidMove(int startX, int startY, int endX, int endY, const Board& board) const override;
+
+    bool isThreat(int myX, int myY, int EnemyKingX, int EnemyKingY) const override;
 };
 
 

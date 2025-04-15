@@ -26,12 +26,13 @@ int main()
 		42 - the last movement was legal, next turn
 		*/
         //my_code
+
+
+
         codeResponse = b.movePiece(res);
+        a.setCodeResponse(codeResponse);
+        res = a.getInput();
 
-
-
-		a.setCodeResponse(codeResponse);
-		res = a.getInput();
 	}
 
 	cout << endl << "Exiting " << endl;

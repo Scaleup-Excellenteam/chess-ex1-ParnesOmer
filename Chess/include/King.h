@@ -10,21 +10,11 @@
 
 class King : public Piece{
 public:
-    King(int i, int j, PieceColor color) : Piece(i, j, color) {}
-    ~King() = default;
+    King(int i, int j, PieceColor color);
+    ~King() override = default;
 
-    bool isValidMove(int startX, int startY, int endX, int endY, const Board& board) const override {
-        // Calculate the difference between the coordinates
-        int dx = abs(endX - startX);
-        int dy = abs(endY - startY);
-
-        //Can only move one square in each direction
-        //vertically, horizontally, or diagonally
-        if (dx > 1 || dy > 1) {
-            return false;
-        }
-        return true;
-    }
+    bool isValidMove(int startX, int startY, int endX, int endY, const Board& board) const override;
+    bool isThreat(int myX, int myY, int EnemyKingX, int EnemyKingY) const override;
 
 };
 

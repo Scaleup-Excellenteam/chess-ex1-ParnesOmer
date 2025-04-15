@@ -11,17 +11,12 @@
 
 class Queen : public Piece{
 public:
-    Queen(int i, int j, PieceColor color) : Piece(i, j, color) {}
-    ~Queen() = default;
+    Queen(int i, int j, PieceColor color);
+    ~Queen() override = default;
 
-    bool isValidMove(int startX, int startY, int endX, int endY, const Board& board) const override {
-        // Create temporary Rook and Bishop objects
-        Rook queen_as_rook(startX, startY, this->getColor());
-        Bishop queen_as_bishop(startX, startY, this->getColor());
+    bool isValidMove(int startX, int startY, int endX, int endY, const Board& board) const override;
 
-        return queen_as_rook.isValidMove(startX, startY, endX, endY, board) ||
-                queen_as_bishop.isValidMove(startX, startY, endX, endY, board);
-    }
+    bool isThreat(int myX, int myY, int EnemyKingX, int EnemyKingY) const override;
 
 };
 
