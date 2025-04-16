@@ -7,39 +7,35 @@
 #include "Board.h"
 #include "KingEnemies.h"
 #include <vector>
-enum PieceColor { WHITE = 1, BLACK = 0};
-enum PieceType { PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING };
-
 using namespace std;
+
 class Board;
 class KingEnemies;
 
+// Enum representing the color of a chess piece.
+enum PieceColor { WHITE = 1, BLACK = 0};
+
+// Enum representing the type of chess piece.
+enum PieceType { PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING };
+
+
+/**
+ * Abstract base class representing a generic chess piece.
+ * This class provides common functionality for all chess pieces and defines pure virtual methods
+ * for determining valid moves and threats to the king.
+ */
 class Piece {
     PieceColor color;
 protected:
     PieceType type;
     int currentX;
     int currentY;
-
 public:
-    explicit Piece(int startX, int startY ,PieceColor color);
+    explicit Piece(int startRow, int startCol , PieceColor color, PieceType type);
     virtual ~Piece() = default;
 
-    Piece(const Piece& other){
-        this->type = other.type;
-        this->currentX = other.currentX;
-        this->currentY = other.currentY;
-        this->color = other.color;
-    }
-    Piece& operator=(const Piece& other){
-        if(this != &other){
-            this->type = other.type;
-            this->currentX = other.currentX;
-            this->currentY = other.currentY;
-            this->color = other.color;
-        }
-        return *this;
-    }
+    Piece(const Piece& other);
+    Piece& operator=(const Piece& other);
 
     PieceColor getColor() const;
     PieceType getType() const;
@@ -47,10 +43,8 @@ public:
     int getY() const;
     void setNewCell(int x, int y);
 
-    virtual bool isValidMove(int startX, int startY, int endX, int endY, const Board& board) const = 0;
-    virtual bool isThreat(int myX, int myY, int KingX, int KingY) const = 0;
-    virtual bool isPromotion(int x) const;
-    virtual void setHasMoved() const {}
+    virtual bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const = 0;
+    virtual bool isThreat(int myRow, int myCol, int KingRow, int KingCol) const = 0;
 };
 
 

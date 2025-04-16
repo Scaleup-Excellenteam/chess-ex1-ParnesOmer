@@ -4,36 +4,51 @@
 
 #include "Pawn.h"
 
-Pawn::Pawn(int i, int j, PieceColor color) : Piece(i, j, color), hasMoved(false){
-     type = PAWN;
-}
+/**
+ * Constructor for the Pawn class.
+ * Initializes a pawn at the given position with the specified color.
+ *
+ * @param i The row position of the pawn.
+ * @param j The column position of the pawn.
+ * @param color The color of the pawn (WHITE or BLACK).
+ */
+Pawn::Pawn(int i, int j, PieceColor color) : Piece(i, j, color, PAWN){}
 
-bool Pawn::isValidMove(int startX, int startY, int endX, int endY, const Board &board) const {
+/**
+ * Validates if the pawn's move is legal according to chess rules.
+ *
+ * @param startRow The starting row of the pawn.
+ * @param startCol The starting column of the pawn.
+ * @param endRow The target row of the pawn.
+ * @param endCol The target column of the pawn.
+ * @param board The current state of the chessboard.
+ * @return True if the move is valid, false otherwise.
+ */
+bool Pawn::isValidMove(int startRow, int startCol, int endRow, int endCol, const Board &board) const {
     // Direction of movement (forward for white or backward for black)
-    int direction = (this->getColor() == WHITE) ? 1 : -1;
+    PieceColor myColor = this->getColor();
+    int direction = (myColor == WHITE) ? 1 : -1;
 
     // Normal forward movement
-    if (endX == startX + direction && startY == endY) {
-        if ((board.getPiece(endX, endY) == nullptr)) {
-            //setHasMoved();
+    if (endRow == startRow + direction && startCol == endCol) {
+        if ((board.getPiece(endRow, endCol) == nullptr)) {
             return true; // Free square
         }
     }
 
     // Initial movement two squares forward
-    if (!hasMoved && endX == startX + (2 * direction) && startY == endY) {
-        if (board.getPiece(startX + direction, startY) == nullptr &&
-            board.getPiece(endX, endY) == nullptr) {
-            //setHasMoved();
+    if(isFirstMove(myColor, startRow) &&
+       (endRow == startRow + (2 * direction)) && (startCol == endCol) ) {
+        if (board.getPiece(startRow + direction, startCol) == nullptr &&
+            board.getPiece(endRow, endCol) == nullptr) {
             return true; // Both squares are free
         }
     }
 
     // Eating diagonally
-    if (endX == startX + direction && abs(endY - startY) == 1) {
-        const Piece* targetPiece = board.getPiece(endX, endY);
+    if (endRow == startRow + direction && abs(endCol - startCol) == 1) {
+        const Piece* targetPiece = board.getPiece(endRow, endCol);
         if (targetPiece != nullptr && targetPiece->getColor() != this->getColor()) {
-            //setHasMoved();
             return true; // Opponent's piece diagonally
         }
     }
@@ -42,22 +57,35 @@ bool Pawn::isValidMove(int startX, int startY, int endX, int endY, const Board &
     return false;
 }
 
-// Check if the soldier has reached the last line (Promotion)
-bool Pawn::isPromotion(int x) const {
-    return (this->getColor() == WHITE && x == 7) || (this->getColor() == BLACK && x == 0);
-}
-
-// Update the soldier's status
-void Pawn::setHasMoved() {
-    hasMoved = true;
-}
-
-bool Pawn::isThreat(int myX, int myY, int EnemyKingX, int EnemyKingY) const {
+/**
+ * Determines if the pawn is threatening the enemy king's position.
+ *
+ * @param myRow The current row of the pawn.
+ * @param myCol The current column of the pawn.
+ * @param EnemyKingRow The row position of the enemy king.
+ * @param EnemyKingCol The column position of the enemy king.
+ * @return True if the pawn is threatening the enemy king, false otherwise.
+ */
+bool Pawn::isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const {
     // Direction of movement (forward for white or backward for black)
     int direction = (this->getColor() == WHITE) ? 1 : -1;
     // Eating diagonally
-    if (EnemyKingX == myX + direction && abs(EnemyKingY - myY) == 1) {
+    if (EnemyKingRow == myRow + direction && abs(EnemyKingCol - myCol) == 1) {
         return true; // Opponent's piece diagonally
     }
     return false;
+}
+
+/**
+ * Checks if the pawn is making its first move.
+ *
+ * @param color The color of the pawn (WHITE or BLACK).
+ * @param row The current row of the pawn.
+ * @return True if the pawn is in its starting position, false otherwise.
+ */
+bool Pawn::isFirstMove(PieceColor color, int row) {
+    if(color == WHITE){
+        return row == 1;
+    }
+    return row == 6;
 }

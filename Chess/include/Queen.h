@@ -8,15 +8,23 @@
 #include "Rook.h"
 #include "Bishop.h"
 
-
+/**
+ * The Queen class represents a queen piece in the game of chess.
+ * It inherits from the Piece base class and uses the logic of both the Rook and Bishop
+ * to implement the queen's movement and threat rules.
+ */
 class Queen : public Piece{
 public:
     Queen(int i, int j, PieceColor color);
+    /**
+     * Default destructor for the Queen class.
+     * Since the Queen class does not allocate dynamic resources, the default destructor is sufficient.
+     */
     ~Queen() override = default;
 
-    bool isValidMove(int startX, int startY, int endX, int endY, const Board& board) const override;
+    bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
 
-    bool isThreat(int myX, int myY, int EnemyKingX, int EnemyKingY) const override;
+    bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
 
 };
 

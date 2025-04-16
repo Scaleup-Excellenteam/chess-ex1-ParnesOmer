@@ -7,23 +7,25 @@
 
 #include "Piece.h"
 
-
+/**
+ * The Pawn class represents a pawn piece in the game of chess.
+ * It inherits from the Piece base class and implements the specific movement and threat logic for a pawn.
+ */
 class Pawn : public Piece{
-    bool hasMoved; // Did the soldier move in the past?
 public:
     Pawn(int i, int j, PieceColor color);
+    /**
+     * Default destructor for the Pawn class.
+     * Since the Pawn class does not allocate dynamic resources, the default destructor is sufficient.
+     */
     ~Pawn() override = default;
 
 
-    bool isValidMove(int startX, int startY, int endX, int endY, const Board& board) const override;
+    bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
 
-    // Check if the soldier has reached the last line (Promotion)
-    bool isPromotion(int x) const override;
+    bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
 
-    // Update the soldier's status
-    void setHasMoved();
-
-    bool isThreat(int myX, int myY, int EnemyKingX, int EnemyKingY) const override;
+    static bool isFirstMove(PieceColor color, int row);
 };
 
 

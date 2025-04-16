@@ -6,15 +6,22 @@
 #define CHESS_BISHOP_H
 #include "Piece.h"
 
-
+/**
+ * The Bishop class represents a bishop piece in the game of chess.
+ * It inherits from the Piece base class and implements specific rules for bishop movement and threats.
+ */
 class Bishop : public Piece{
 public:
     Bishop(int i, int j, PieceColor color);
+    /**
+     * Default destructor for the Bishop class.
+     * Since the Bishop class does not allocate dynamic resources, the default destructor is sufficient.
+     */
     ~Bishop() override = default;
 
-    bool isValidMove(int startX, int startY, int endX, int endY, const Board& board) const override;
+    bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
 
-    bool isThreat(int myX, int myY, int EnemyKingX, int EnemyKingY) const override;
+    bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
 };
 
 
