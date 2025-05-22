@@ -26,6 +26,22 @@ public:
     bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
 
     static bool isFirstMove(PieceColor color, int row);
+
+    /**
+     * Gets the value of the Pawn piece.
+     *
+     * @return
+     */
+    int getValue() const override {
+        return 1;
+    }
+    /**
+     * Clones the Pawn object.
+     * @return A pointer to the cloned Pawn object.
+     */
+    Piece* clone() const override {
+        return new Pawn(*this);
+    }
 };
 
 

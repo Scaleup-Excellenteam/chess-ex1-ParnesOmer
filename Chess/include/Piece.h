@@ -37,8 +37,14 @@ public:
     Piece(const Piece& other);
     Piece& operator=(const Piece& other);
 
+    /**
+     * Pure virtual method for cloning the piece.
+     */
+    virtual Piece* clone() const = 0;
+
     PieceColor getColor() const;
     PieceType getType() const;
+    virtual int getValue() const = 0;
     int getX() const;
     int getY() const;
     void setNewCell(int x, int y);

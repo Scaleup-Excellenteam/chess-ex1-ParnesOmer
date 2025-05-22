@@ -22,6 +22,22 @@ public:
     bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
 
     bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
+
+    /**
+     * Gets the value of the knight piece.
+     *
+     * @return
+     */
+    int getValue() const override {
+        return 3;
+    }
+    /**
+     * Clones the Knight object.
+     * @return A pointer to the cloned Knight object.
+     */
+    Piece* clone() const override {
+        return new Knight(*this);
+    }
 };
 
 

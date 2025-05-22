@@ -68,7 +68,7 @@ void Piece::setNewCell(int x, int y) {
  *
  * @param other The Piece instance to copy from.
  */
-Piece::Piece(const Piece &other) {
+Piece::Piece(const Piece& other) {
     this->type = other.type;
     this->currentX = other.currentX;
     this->currentY = other.currentY;

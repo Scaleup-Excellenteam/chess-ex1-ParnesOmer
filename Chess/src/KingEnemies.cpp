@@ -11,7 +11,89 @@
  * @param row The row position of the king.
  * @param col The column position of the king.
  */
-KingEnemies::KingEnemies(int row, int col)  : KingRow(row), KingCol(col){}
+KingEnemies::KingEnemies(bool isWhite)  : isWhite(isWhite){}
+
+/**
+ * Destructor for the KingEnemies class.
+ * Frees all dynamically allocated memory for threat vectors.
+ */
+KingEnemies::~KingEnemies() = default;
+
+/**
+ * Helper function to copy the state of the KingEnemies object.
+ * This function is not used in the current implementation but can be
+ * useful for deep copying if needed in the future.
+ *
+ * @param other The KingEnemies object to copy from.
+ */
+void KingEnemies::copyHelper(const KingEnemies &other) {
+    isWhite = other.isWhite;
+    for (const Piece* piece : other.threat_from_pawn) {
+        threat_from_pawn.push_back(piece);
+    }
+    for (const Piece* piece : other.threat_from_queen) {
+        threat_from_queen.push_back(piece);
+    }
+    for (const Piece* piece : other.threat_from_knight) {
+        threat_from_knight.push_back(piece);
+    }
+    for (const Piece* piece : other.threat_from_bishop) {
+        threat_from_bishop.push_back(piece);
+    }
+    for (const Piece* piece : other.threat_from_rook) {
+        threat_from_rook.push_back(piece);
+    }
+}
+
+
+/**
+ * Copy constructor for the KingEnemies class.
+ * Performs a deep copy of all threat vectors and other members.
+ *
+ * @param other The KingEnemies object to copy from.
+ */
+KingEnemies::KingEnemies(const KingEnemies& other){
+    copyHelper(other);
+}
+
+
+/**
+ * Copy assignment operator for the KingEnemies class.
+ * Performs a deep copy of all threat vectors and other members.
+ *
+ * @param other The KingEnemies object to copy from.
+ * @return A reference to the current KingEnemies object.
+ */
+KingEnemies& KingEnemies::operator=(const KingEnemies& other) {
+    if (this != &other) { // Check for self-assignment
+        // Clear existing resources
+        threat_from_pawn.clear();
+        threat_from_queen.clear();
+        threat_from_knight.clear();
+        threat_from_bishop.clear();
+        threat_from_rook.clear();
+
+        // Copy the state from the other object
+        copyHelper(other);
+    }
+    return *this;
+}
+
+/**
+ * Gets the current position of the king based on its color.
+ * If the king is white, it retrieves the white king's position; otherwise, it retrieves the black king's position.
+ *
+ * @param board The current state of the chessboard.
+ * @return A pair representing the row and column of the king's position.
+ */
+pair<int, int> KingEnemies::getKingPosition(const Board& board) const {
+    if(isWhite) {
+        return board.getWhiteKingPosition();
+    } else {
+        return board.getBlackKingPosition();
+    }
+
+}
 
 /**
  * Updates the threats to the king by analyzing the entire chessboard.
@@ -27,18 +109,25 @@ void KingEnemies::updateThreats(const Board& board) {
     threat_from_bishop.clear();
     threat_from_rook.clear();
 
+    // Get the current position of the king
+    auto [KingRow, KingCol] = getKingPosition(board);
+
     const Piece* myKing = board.getPiece(KingRow, KingCol);
+    if (myKing == nullptr) {
+        cout << "King not found on the board! is white? :" << isWhite << endl;
+        return; // King not found, no threats to update
+    }
     // Go over the entire board and check for threats
     for (int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             const Piece* piece = board.getPiece(i, j);
             if (piece != nullptr && piece->getColor() != myKing->getColor() && piece->isThreat(i, j, KingRow, KingCol)) {
                 switch (piece->getType()) {
-                    case PAWN: threat_from_pawn.push_back(const_cast<Piece*>(piece)); break;
-                    case QUEEN: threat_from_queen.push_back(const_cast<Piece*>(piece)); break;
-                    case KNIGHT: threat_from_knight.push_back(const_cast<Piece*>(piece)); break;
-                    case BISHOP: threat_from_bishop.push_back(const_cast<Piece*>(piece)); break;
-                    case ROOK: threat_from_rook.push_back(const_cast<Piece*>(piece)); break;
+                    case PAWN: threat_from_pawn.push_back(piece); break;
+                    case QUEEN: threat_from_queen.push_back(piece); break;
+                    case KNIGHT: threat_from_knight.push_back(piece); break;
+                    case BISHOP: threat_from_bishop.push_back(piece); break;
+                    case ROOK: threat_from_rook.push_back(piece); break;
                     default: break;
                 }
             }
@@ -63,6 +152,9 @@ void KingEnemies::updateThreats(const Board& board) {
     int y = startCol + dy;
 
     while (x != endRow || y != endCol) {
+        if(x < 0 || x >= 8 || y < 0 || y >= 8) {
+            return false; // Out of bounds
+        }
         if (board.getPiece(x, y) != nullptr) {
             return false; // The path is blocked
         }
@@ -83,6 +175,9 @@ bool KingEnemies::isKingInCheck(const Board& board) const {
     if(!threat_from_pawn.empty() || !threat_from_knight.empty()){
         return true;
     }
+
+    // Get the current position of the king
+    auto [KingRow, KingCol] = getKingPosition(board);
 
     // Check for tools that require a clear path
     if(!threat_from_rook.empty()){
@@ -109,19 +204,6 @@ bool KingEnemies::isKingInCheck(const Board& board) const {
         }
     }
     return false; // There is no active threat to the king
-}
-
-/**
- * Updates the king's position and recalculates threats on the board.
- *
- * @param row The new row position of the king.
- * @param col The new column position of the king.
- * @param board The current state of the chessboard.
- */
-void KingEnemies::kingMoved(int row, int col, const Board& board) {
-    KingRow = row;
-    KingCol = col;
-    updateThreats(board);
 }
 
 /**
@@ -157,6 +239,9 @@ void KingEnemies::updateThreatsOnMove(const Piece *movedPiece, int oldRow, int o
         }
     }
 
+    // Get the current position of the king
+    auto [KingRow, KingCol] = getKingPosition(board);
+
     // 2. Checking if the new piece threatens the king
     if (movedPiece != nullptr && movedPiece->isThreat(newRow, newCol, KingRow, KingCol)) {
         switch (movedPiece->getType()) {
@@ -179,4 +264,3 @@ void KingEnemies::updateThreatsOnMove(const Piece *movedPiece, int oldRow, int o
         }
     }
 }
-

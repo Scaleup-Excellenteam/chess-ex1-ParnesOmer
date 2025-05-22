@@ -23,6 +23,24 @@ public:
     bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
     bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
 
+    /**
+     * Gets the value of the Bishop piece.
+     *
+     * @return
+     */
+    int getValue() const override {
+        // The king is the most valuable piece but has a value of 0 in terms of scoring
+        // because it cannot be captured like other pieces.
+        // and check is calculate in a different place using the move status.
+        return 0;
+    }
+    /**
+     * Clones the King object.
+     * @return A pointer to the cloned King object.
+     */
+    Piece* clone() const override {
+        return new King(*this);
+    }
 };
 
 

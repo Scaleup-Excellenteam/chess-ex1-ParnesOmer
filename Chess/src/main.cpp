@@ -4,14 +4,14 @@
 
 int main()
 {
-	string board = "RNBQKBNRPPPPPPPP################################pppppppprnbqkbnr";
+    string board = "RNBQKBNRPPPPPPPP################################pppppppprnbqkbnr";
 //	string board = "##########K###############################R#############r#r#####";
-	Chess a(board);
-	int codeResponse = 0;
-	string res = a.getInput();
+    Chess a(board);
+    int codeResponse = 0;
+    string res = a.getInput();
     Board b;
-	while (res != "exit")
-	{
+    while (res != "exit")
+    {
         /*
         codeResponse value :
         Illegal movements :
@@ -29,7 +29,7 @@ int main()
         /**/
         { // put your code here instead that code
             try {
-                codeResponse = b.movePiece(res);
+                codeResponse = b.movePiece(res); // move the piece and get the code response for the move
             }
             catch (invalid_argument&) {
                 cout << "Invalid input !!" << endl;
@@ -37,10 +37,20 @@ int main()
                 continue;
             }
         }
-            a.setCodeResponse(codeResponse);
-            res = a.getInput();
-	}
+        a.setCodeResponse(codeResponse);
+        if(codeResponse > 40) { // if the move was legal check the most recommended moves for the next turn
+            vector<string> moves = b.getTopMoves();
+            if (moves.empty()) { // if there are no moves available
+                cout << "No moves available" << endl;
+            }
+            cout << "Recommended moves: " << endl;
+            for (const string &move: moves) {
+                cout << "\t" << move << endl; // print the top 3 recommended moves
+            }
+        }
+        res = a.getInput();
+    }
 
-	cout << endl << "Exiting " << endl;
-	return 0;
+    cout << endl << "Exiting " << endl;
+    return 0;
 }
