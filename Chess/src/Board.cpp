@@ -410,7 +410,7 @@ vector<string> Board::getTopMoves() {
                 topMoves.push(move); // Add the evaluated move to the priority queue
             }
         }
-        topMoves.print(); // Print the moves in the priority queue
+        //topMoves.print(); // Print the moves in the priority queue for debuging
 
         // Get the top three moves from the priority queue
         while (!topMoves.empty() && bestMoves.size() < 3) { // Limit to top 3 moves
