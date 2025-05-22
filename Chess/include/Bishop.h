@@ -22,6 +22,22 @@ public:
     bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
 
     bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
+
+    /**
+     * Gets the value of the Bishop piece.
+     *
+     * @return
+     */
+    int getValue() const override {
+        return 3;
+    }
+    /**
+     * Clones the Bishop object.
+     * @return A pointer to the cloned Bishop object.
+     */
+    Piece* clone() const override {
+        return new Bishop(*this);
+    }
 };
 
 

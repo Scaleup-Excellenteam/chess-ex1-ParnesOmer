@@ -22,6 +22,22 @@ public:
     bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
 
     bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
+
+    /**
+     * Gets the value of the Rook piece.
+     *
+     * @return
+     */
+    int getValue() const override {
+        return 5;
+    }
+    /**
+     * Clones the Rook object.
+     * @return A pointer to the cloned Rook object.
+     */
+    Piece* clone() const override {
+        return new Rook(*this);
+    }
 };
 
 #endif //CHESS_EX1_PARNESOMER_MAIN_ROOK_H

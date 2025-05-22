@@ -26,6 +26,21 @@ public:
 
     bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
 
+    /**
+     * Gets the value of the Queen piece.
+     *
+     * @return
+     */
+    int getValue() const override {
+        return 9;
+    }
+    /**
+     * Clones the Queen object.
+     * @return A pointer to the cloned Queen object.
+     */
+    Piece* clone() const override {
+        return new Queen(*this);
+    }
 };
 
 
