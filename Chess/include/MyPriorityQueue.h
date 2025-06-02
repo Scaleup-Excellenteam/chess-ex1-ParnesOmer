@@ -6,11 +6,11 @@
 #define CHESS_MYPRIORITYQUEUE_H
 
 #include "Exception.h"
+#include "Constants.h"
 #include <list>
 #include <stdexcept>
 #include <iostream>
 
-using namespace std;
 
 /**
  * @brief Comparator struct for comparing two chess moves.
@@ -37,8 +37,8 @@ struct MyComparator {
  */
 template<typename T>
 class MyPriorityQueue{
-    list<T> queue;                ///< Internal queue, sorted by priority.
-    MyComparator <T> comparator;  ///< Comparator instance.
+    std::list<T> queue;                ///< Internal queue, sorted by priority.
+    MyComparator<T> comparator;  ///< Comparator instance.
 public:
     /**
      * @brief Default constructor.
@@ -48,13 +48,17 @@ public:
      * @brief Default destructor.
      */
     ~MyPriorityQueue() = default;
+    MyPriorityQueue(const MyPriorityQueue&) = delete;
+    MyPriorityQueue& operator=(const MyPriorityQueue&) = delete;
+    MyPriorityQueue(MyPriorityQueue&&) = default;
+    MyPriorityQueue& operator=(MyPriorityQueue&&) = default;
 
     /**
      * @brief Push a new move into the queue, maintaining priority order.
      * @param move Pointer to the move to insert. Must not be nullptr.
      * @throws std::invalid_argument if move is nullptr.
      */
-    void push(T move) {
+    void push(T&& move) {
         if (!move) {
             throw InvalidMoveException();  // Move is nullptr
         }
@@ -63,7 +67,10 @@ public:
         while (it != queue.end() && comparator(move, *it)) {
             ++it;
         }
-        queue.insert(it, move); // Insert the move at the correct position
+        queue.insert(it, std::move(move)); // Insert the move at the correct position
+        if(queue.size() > Constants::PRIORITY_QUEUE_SIZE) {
+            queue.pop_back(); // Remove the lowest priority move if the queue exceeds the size limit
+        }
     }
 
     /**
@@ -75,7 +82,7 @@ public:
             throw PullFromEmptyQueueException(); // Cant pull from an empty queue
         }
         // Pulling the first element
-        T highest = queue.front();
+        T highest = std::move(queue.front());
         queue.pop_front(); // remove it from the queue
         return highest;
     }
@@ -91,8 +98,7 @@ public:
         }
     }
     /**
-     * @brief Clear all elements from the queue.
-     * The function does not freeing the memory of the moves, just removing them from the queue.
+     * @brief Clear the queue, removing all moves.
      */
     void clear() {
         queue.clear(); // clear the list

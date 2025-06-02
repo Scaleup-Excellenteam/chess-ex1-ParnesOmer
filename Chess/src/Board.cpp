@@ -398,41 +398,27 @@ bool Board::HandlePromotion(Piece *source, int newRow, int newCol) {
  * This function evaluates all possible moves using the EvaluateAllMoves class
  * @return A vector of strings representing the top three recommended moves.
  */
-vector<string> Board::getTopMoves() {
-    MyPriorityQueue<Move*> topMoves; // Priority queue to store the top moves
-    EvaluateAllMoves e(3, *this); // Create an instance of EvaluateAllMoves
+vector<string> Board::getTopMoves(int numThreads, int depth) {
+    EvaluateAllMoves e(depth, *this); // Create an instance of EvaluateAllMoves
 
-    vector<Move*> AllMoves = e.evaluateAllMoves(); // Evaluate all valid moves
+    MyPriorityQueue<std::unique_ptr<Move>> topMoves = e.evaluateAllMoves(numThreads); // Evaluate all valid moves
     vector<string> bestMoves;
     try{
-        for (Move *move: AllMoves) { // Iterate through all evaluated moves
-            if (move->getScore() > 0) {
-                topMoves.push(move); // Add the evaluated move to the priority queue
-            }
-        }
-        //topMoves.print(); // Print the moves in the priority queue for debuging
+
+        //topMoves.print(); // Print the moves in the priority queue for debugging purposes
 
         // Get the top three moves from the priority queue
         while (!topMoves.empty() && bestMoves.size() < 3) { // Limit to top 3 moves
+            auto movePtr = topMoves.pull();
             ostringstream oss;
-            oss << *topMoves.pull();
-            string moveStr = oss.str();
-            bestMoves.push_back(moveStr); // Retrieve the move with the highest score using poll()
+            oss << *movePtr;
+            bestMoves.push_back(oss.str()); // Retrieve the move with the highest score using poll()
         }
     } catch (PullFromEmptyQueueException& e) {
         cout << e.what() << endl; // Handle the exception if the queue is empty
     } catch (InvalidMoveException& e) {
         cout << e.what() << endl; // Handle the exception if the move is invalid
     }
-
-
-    // Clean up the evaluated moves
-    for (Move* move : AllMoves) {
-        delete move; // Free memory allocated for each move
-    }
-    AllMoves.clear(); // Clear the vector of evaluated moves
-    // Clear the priority queue
-    topMoves.clear();
 
     return bestMoves;
 }
