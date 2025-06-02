@@ -20,7 +20,7 @@ pair<int, int> Move::getEndPosition() { return endPosition; }
 bool Move::operator<(const Move& other) const { return score < other.score; }
 
 ostream& operator<<(ostream& os, const Move& move) {
-    os << static_cast<char>(move.startPosition.first + 'a') << move.startPosition.second + 1 << " "
+    os << static_cast<char>(move.startPosition.first + 'a') << move.startPosition.second + 1
        << static_cast<char>(move.endPosition.first + 'a') << move.endPosition.second + 1 << " with score: " << move.score;
     return os;
 }
