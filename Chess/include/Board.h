@@ -8,6 +8,7 @@
 #include "Move.h"
 #include "EvaluateAllMoves.h"
 #include "Exception.h"
+#include "Constants.h"
 #include <string>
 #include <sstream>
 #include <vector>
@@ -82,7 +83,7 @@ public:
 
     // Evaluation of the best move
     /// Returns the top three recommended moves as strings.
-    vector<string> getTopMoves();
+    vector<string> getTopMoves(int numThreads, int depth);
 };
 
 #endif //CHESS_EX1_PARNESOMER_MAIN_BOARD_H

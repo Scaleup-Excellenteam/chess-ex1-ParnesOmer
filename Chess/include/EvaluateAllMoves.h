@@ -6,7 +6,11 @@
 #define CHESS_EVALUATEALLMOVES_H
 #include "Board.h"
 #include "Move.h"
+#include "ThreadsPool.h"
+#include "ThreadSafePriorityQueue.h"
 #include <vector>
+#include <thread>
+#include <atomic>
 
 class Board;
 class Piece;
@@ -14,54 +18,26 @@ class Piece;
 using namespace std;
 
 /**
- * @brief Class for evaluating all possible chess moves from a given board state.
- *
- * Provides methods to generate, evaluate, and score all legal moves for the current player,
- * using a simple search tree up to a specified depth.
- * Assumes Board, Piece, and Move classes are defined elsewhere.
+ * @brief Evaluates and scores all legal moves for a given board state and search depth.
  */
 class EvaluateAllMoves {
-    int depth;            ///< The depth of the search tree for move evaluation.
-    const Board& board;   ///< Reference to the original chessboard.
-    Board* tempBoard;     ///< Temporary board used for move simulations.
+    int depth;            // Search depth
+    const Board& board;   // Reference to original board
+    Board* tempBoard;     // Board copy for simulations
 
-    ///< Calculates the score of a move
-    int getMoveScore(Move* move, Piece* target, Piece *source);
-    ///< Calculates the net threat impact of a move
-    int moveMakeOrInThreats(Move* move, Piece* movedPiece);
+    int getMoveScore(Move* move, Piece* target, Piece *source); // Score one move
+    int moveMakeOrInThreats(Move* move, Piece* movedPiece);     // Net threats for a move
 public:
-    /**
-     * @brief Constructor for EvaluateAllMoves. Initializes the evaluator for a given board and search depth.
-     * @param depth The depth of the search tree for move evaluation.
-     * @param board Reference to the original chessboard.
-     */
     EvaluateAllMoves(int depth, const Board& board);
-    /**
-     * @brief Destructor for EvaluateAllMoves. Cleans up the temporary board.
-     */
     ~EvaluateAllMoves();
 
-    /**
-     * @brief Generates all valid moves for the current player, evaluates their scores, and returns them.
-     * @return Vector of pointers to Move, scored and ready for further processing.
-     *
-     * Note: The caller is responsible for freeing the returned Move pointers.
-     */
-    vector<Move*> evaluateAllMoves();
-    /**
-     * @brief Returns all valid (legal) moves for the current player from the current board position.
-     * @return Vector of pointers to all valid Move objects.
-     *
-     * Note: The caller is responsible for freeing the returned Move pointers.
-     */
-    vector<Move*> getAllValidMoves();
-    /**
-     * @brief Recursively evaluates a single move to a given depth using a simple minimax approach.
-     * @param move The move to evaluate.
-     * @param depth The remaining search depth (default: 3).
-     * @return The evaluated score for this move, taking into account possible opponent responses.
-     */
-    int evaluateOneMove(Move* move, int depth = 3);
+    // Disable copy constructor and assignment operator
+    EvaluateAllMoves(const EvaluateAllMoves&) = delete;
+    EvaluateAllMoves& operator=(const EvaluateAllMoves&) = delete;
+
+    MyPriorityQueue<std::unique_ptr<Move>> evaluateAllMoves(int numThreads); // Evaluate all moves in parallel
+    std::vector<std::unique_ptr<Move>> getAllValidMoves();                   // Generate all legal moves
+    int evaluateOneMove(Move* move, int depth = 3);                          // Minimax evaluation for one move
 };
 
 #endif //CHESS_EVALUATEALLMOVES_H

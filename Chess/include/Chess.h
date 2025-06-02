@@ -4,7 +4,10 @@
 #include <Windows.h>
 #endif
 
+#include "Constants.h"
+#include "Board.h"
 #include <string>
+#include <chrono>
 
 using std::cout;
 using std::cin; 
@@ -38,6 +41,14 @@ public:
 	Chess(const string& start = "RNBQKBNRPPPPPPPP################################pppppppprnbqkbnr");
 	Chess(const Chess&)=delete;
 	Chess& operator=(const Chess&) = delete;
-	string getInput();
+	string getInput(bool isAutoMode, const std::string& nextMove = "");
 	void setCodeResponse(int codeResponse);
+
+    void normalizeMove(std::string& move);
+    int askSearchDepth();
+    int askGameMode();
+    void autoPlay(int searchDepth, int numMoves, int numThreads);
+    void manualPlay(int searchDepth, int numThreads = 1);
+    void printRecommendedMoves(const vector<string>& moves);
+    double measureAutoGameTime(int searchDepth, int numMoves, int numThreads);
 };

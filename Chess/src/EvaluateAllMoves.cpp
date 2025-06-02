@@ -5,30 +5,64 @@
 #include "EvaluateAllMoves.h"
 
 
-/// Constructor for EvaluateAllMoves. Initializes the evaluator for a given board and search depth.
+// Constructor: initialize with board and depth
 EvaluateAllMoves::EvaluateAllMoves(int depth, const Board& board) : depth(depth), board(board){
-    tempBoard = new Board(board); // Create a copy of the board
+    tempBoard = new Board(board); // Defensive copy
 }
 
-/// Destructor for EvaluateAllMoves. Cleans up the temporary board.
+// Destructor: clean up
 EvaluateAllMoves::~EvaluateAllMoves() {
     delete tempBoard;
 }
 
-/// Generates all valid moves for the current player, evaluates their scores, and returns them.
-vector<Move*> EvaluateAllMoves::evaluateAllMoves() {
-    vector<Move*> allValidMoves = getAllValidMoves(); // Get all valid moves
+// Evaluate all legal moves, scoring them in parallel using a thread pool
+MyPriorityQueue<std::unique_ptr<Move>> EvaluateAllMoves::evaluateAllMoves(int numThreads) {
+    vector<std::unique_ptr<Move>> allValidMoves = getAllValidMoves();
+    ThreadsPool pool(numThreads);
+    ThreadSafePriorityQueue<std::unique_ptr<Move>> resultQueue;
+    std::vector<std::future<void>> futures;
+    std::atomic<bool> stopFlag{false}; // Used for early exit if high score found
 
-    for (Move* move : allValidMoves) { // Iterate through all valid moves
-        move->setScore(evaluateOneMove(move, depth)); // Evaluate each move with a depth of 3
+    // Launch a job for each move
+    for (auto& move : allValidMoves) {
+        Move moveCopy = *move;
+        auto job = [this, moveCopy, &resultQueue, &stopFlag]() mutable {
+            if (stopFlag.load()) return;
+            Board privateBoard = this->board;
+            EvaluateAllMoves evaluator(this->depth, privateBoard);
+            int score = evaluator.evaluateOneMove(&moveCopy, this->depth);
+            moveCopy.setScore(score);
+            // Early exit if a "winning" move is found
+            if (score >= Constants::HIGH_SCORE_THRESHOLD) {
+                stopFlag.store(true);
+            }
+            if (score >= 0) {
+                resultQueue.push(std::make_unique<Move>(moveCopy));
+            }
+        };
+        futures.push_back(pool.enqueue(job));
     }
 
-    return allValidMoves;
+    // Wait for all threads
+    for (auto& f : futures) {
+        f.get();
+    }
+
+    // Collect results into a priority queue (not thread-safe)
+    MyPriorityQueue<std::unique_ptr<Move>> topMoves;
+    while (!resultQueue.empty()) {
+        try {
+            topMoves.push(resultQueue.pull());
+        } catch (...) {
+            break;
+        }
+    }
+    return topMoves;
 }
 
-/// Returns all valid (legal) moves for the current player from the current board position.
-vector<Move*> EvaluateAllMoves::getAllValidMoves() {
-    vector<Move*> allValidMoves;
+// Generate all legal moves for the current player
+vector<std::unique_ptr<Move>> EvaluateAllMoves::getAllValidMoves() {
+    vector<std::unique_ptr<Move>> allValidMoves;
     for(int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             Piece* pieceSource = (*tempBoard)[i][j];
@@ -36,9 +70,9 @@ vector<Move*> EvaluateAllMoves::getAllValidMoves() {
                 for (int r = 0; r < 8; ++r) {
                     for (int c = 0; c < 8; ++c) {
                         int moveStatus = tempBoard->isValidMove(i, j, r, c);
-                        if(moveStatus > 40){
-                            // The move is valid
-                            allValidMoves.emplace_back(new Move(i, j, r, c, moveStatus)); // Add the move to the list
+                        if(moveStatus > Constants::CHECK_STATUS){
+                            // Only valid moves are included
+                            allValidMoves.emplace_back(std::make_unique<Move>(i, j, r, c, moveStatus)); // Add the move to the list
                         }
                     }
                 }
@@ -48,12 +82,10 @@ vector<Move*> EvaluateAllMoves::getAllValidMoves() {
     return allValidMoves;
 }
 
-/// Calculates the net threat impact of a move
+// Evaluate net threats created by a move (threats to enemy, dangers from enemy)
 int EvaluateAllMoves::moveMakeOrInThreats(Move* move, Piece* movedPiece) {
     auto [endRow, endCol] = move->getEndPosition();
-
-    if(!movedPiece) return false;
-
+    if(!movedPiece) return 0;
     int threats = 0;
     int dangers = 0;
 
@@ -61,53 +93,92 @@ int EvaluateAllMoves::moveMakeOrInThreats(Move* move, Piece* movedPiece) {
         for(int j = 0; j < 8; ++j) {
             Piece* enemyPiece = (*tempBoard)[i][j];
             if(enemyPiece && enemyPiece->getColor() != movedPiece->getColor()) {
-                if(tempBoard->isValidMove(endRow, endCol, i, j) > 40) {
-                    if(enemyPiece->getValue() > movedPiece->getValue()) {
+                // Check if after the move, the piece threatens an enemy piece
+                if(tempBoard->isValidMove(endRow, endCol, i, j) > Constants::CHECK_STATUS) {
                         threats += enemyPiece->getValue();
-                    }
                 }
+                // Temporarily switch turn: can enemy threaten us?
                 tempBoard->changeTurn();
-                if(tempBoard->isValidMove(i, j, endRow, endCol) > 40) {
-                    if(enemyPiece->getValue() < movedPiece->getValue()) {
+                if(tempBoard->isValidMove(i, j, endRow, endCol) > Constants::CHECK_STATUS) {
                         dangers += movedPiece->getValue();
-                    }
                 }
                 tempBoard->changeTurn();
             }
         }
     }
-    // return the difference between threats and dangers
     return threats - dangers;
 }
 
-/// Calculates the score of a move based on various factors such as:
+// Compute score for a move based on material, position, development, and threats
 int EvaluateAllMoves::getMoveScore(Move *move, Piece *target, Piece *source) {
-    auto [endRow, endCol] = move->getEndPosition(); // Get the end position of the move
+    auto [endRow, endCol] = move->getEndPosition();
+    auto [startRow, startCol] = move->getStartPosition();
     int score = 0;
 
     if(move->getMoveStatus() == 41){
-        score += 7; // Add a score for putting the rival king in check
+        score += 10; // Bonus: gives check
     }
-    if(target){ // If the target square contains a piece, add its value to the score
-        score += target->getValue(); // Add the value of the captured piece
-    }
-    if(endRow >= 2 && endRow <= 5 && endCol >= 2 && endCol <= 5) {
-        score += 2; // Add a score for control of the center
-    }
-    // check the balance of the threats that the move creates(can be negative).
-    int balance = moveMakeOrInThreats(move, source);
-    score += balance;
-
-    // Add a score for pawn promotion
-    if(source->getType() == PAWN) {
-        if(endRow == 0 || endRow == 7) {
-            score += 5;
+    if(target){
+        int captureValue = target->getValue();
+        // Bonus if small piece captures big piece
+        if(source->getValue() < target->getValue()) {
+            score += captureValue + (captureValue - source->getValue()) / 2;
+        } else {
+            score += captureValue;
         }
     }
+    // Center control bonus
+    if(endRow >= 2 && endRow <= 5 && endCol >= 2 && endCol <= 5) {
+        score += 2; // Add a score for control of the center
+        if(endRow >= 3 && endRow <= 4 && endCol >= 3 && endCol <= 4) {
+            score += 2;
+        }
+    }
+    // Net threats/dangers
+    int threatBalance  = moveMakeOrInThreats(move, source);
+    score += threatBalance ;
+
+    // Pawn promotion and advancement bonuses
+    if(source->getType() == PAWN) {
+        if(endRow == 0 || endRow == 7) {
+            score += 8; // Promotion
+        }
+        // Advancement
+        int advancement = (source->getColor() == WHITE) ? endRow - startRow : startRow - endRow;
+        if(advancement > 0) {
+            score += advancement; // More points for advancing further
+        }
+    }
+
+    // Development bonus: first move for knights/bishops
+    if(source->getType() == KNIGHT || source->getType() == BISHOP) {
+        if((source->getColor() == WHITE && startRow == 0) ||
+           (source->getColor() == BLACK && startRow == 7)) {
+            score += 3;
+        }
+    }
+    // Penalty for early king moves ("unsafe king")
+    if(source->getType() == KING) {
+        if((source->getColor() == WHITE && startRow == 0) ||
+           (source->getColor() == BLACK && startRow == 7)) {
+            score -= 3;
+        }
+    }
+    // Activity bonus: reward moves that increase mobility from destination
+    int mobilityBonus = 0;
+    for(int i = 0; i < 8; i++) {
+        for(int j = 0; j < 8; j++) {
+            if(tempBoard->isValidMove(endRow, endCol, i, j) > Constants::CHECK_STATUS) {
+                mobilityBonus++;
+            }
+        }
+    }
+    score += mobilityBonus / 4;
+
     return score;
 }
 
-/// Recursively evaluates a move to a given depth using a simple minimax approach.
+// Minimax-like move evaluation: recursively score moves for both sides
 int EvaluateAllMoves::evaluateOneMove(Move* move, int depth) {
     int bestOpponentScore = INT_MIN; // Initialize to a very low value
     auto [startRow, startCol] = move->getStartPosition();
@@ -118,28 +189,25 @@ int EvaluateAllMoves::evaluateOneMove(Move* move, int depth) {
 
     tempBoard->makeMove(source, startRow, startCol, endRow, endCol);
 
-    int score =  getMoveScore(move, target, source); // Get the score for the move
+    int score = getMoveScore(move, target, source); // Get the score for the move
 
     if(depth > 1) {
         tempBoard->changeTurn();
-
-        vector<Move*> opponentMoves = getAllValidMoves();
+        vector<std::unique_ptr<Move>> opponentMoves = getAllValidMoves();
 
         // Evaluate opponent's moves
-        for (Move* opponentMove: opponentMoves) {
-            int rivalScore = -evaluateOneMove(opponentMove, depth - 1);
+        for (auto& opponentMove: opponentMoves) {
+            int rivalScore = evaluateOneMove(opponentMove.get(), depth - 1);
             bestOpponentScore = max(bestOpponentScore, rivalScore);
         }
-        for(Move* opponentMove: opponentMoves) {
-            delete opponentMove; // Free memory for opponent moves
-        }
-        opponentMoves.clear(); // Clear the vector of opponent moves
         tempBoard->changeTurn();
+
+        // Subtract opponent's best possible counter
+        if(bestOpponentScore != INT_MIN) {
+            score -= bestOpponentScore;
+        }
     }
 
-    tempBoard->undoMove(source, target, startRow, startCol, endRow, endCol); // Undo the move
-    if(bestOpponentScore == INT_MIN) {
-        bestOpponentScore = 0; // Skip if the move is invalid
-    }
-    return score + bestOpponentScore;
+    tempBoard->undoMove(source, target, startRow, startCol, endRow, endCol);
+    return score;
 }
