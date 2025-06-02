@@ -1,56 +1,36 @@
-// Chess 
+// Chess
 #include "Chess.h"
-#include "Board.h"
 
-int main()
-{
+
+int main() {
+    // Set up the standard chess board as a string
     string board = "RNBQKBNRPPPPPPPP################################pppppppprnbqkbnr";
-//	string board = "##########K###############################R#############r#r#####";
-    Chess a(board);
-    int codeResponse = 0;
-    string res = a.getInput();
-    Board b;
-    while (res != "exit")
+    int searchDepth, gameMode;
+
+    // Collect user input for search depth and game mode (automatic/manual)
     {
-        /*
-        codeResponse value :
-        Illegal movements :
-        11 - there is not piece at the source
-        12 - the piece in the source is piece of your opponent
-        13 - there one of your pieces at the destination
-        21 - illegal movement of that piece
-        31 - this movement will cause you checkmate
-
-        legal movements :
-        41 - the last movement was legal and cause check
-        42 - the last movement was legal, next turn
-        */
-
-        /**/
-        { // put your code here instead that code
-            try {
-                codeResponse = b.movePiece(res); // move the piece and get the code response for the move
-            }
-            catch (invalid_argument&) {
-                cout << "Invalid input !!" << endl;
-                res = a.getInput();
-                continue;
-            }
-        }
-        a.setCodeResponse(codeResponse);
-        if(codeResponse > 40) { // if the move was legal check the most recommended moves for the next turn
-            vector<string> moves = b.getTopMoves();
-            if (moves.empty()) { // if there are no moves available
-                cout << "No moves available" << endl;
-            }
-            cout << "Recommended moves: " << endl;
-            for (const string &move: moves) {
-                cout << "\t" << move << endl; // print the top 3 recommended moves
-            }
-        }
-        res = a.getInput();
+        Chess chess(board);
+        searchDepth = chess.askSearchDepth();
+        gameMode = chess.askGameMode();
     }
 
-    cout << endl << "Exiting " << endl;
+    if(gameMode == Constants::AUTOMATIC_MODE) {
+        // Benchmark: run auto-game with varying thread counts
+        for (int threads : {1, 2, 4, 8}) {
+            Chess chess(board);
+            double time = chess.measureAutoGameTime(searchDepth, Constants::NUMBER_OF_MOVES_FOR_AUTO_GAME, threads);
+            std::cout << "=========================" << std::endl;
+            std::cout << "Auto game with " << threads
+                      << " threads (depth=" << searchDepth << ") took "
+                      << time << " seconds." << std::endl;
+            std::cout << "=========================" << std::endl;
+        }
+    }
+    else {
+        // Manual play mode
+        Chess chess(board);
+        chess.manualPlay(searchDepth);
+    }
+
     return 0;
 }
