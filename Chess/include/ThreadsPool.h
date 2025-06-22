@@ -4,15 +4,15 @@
 
 #ifndef CHESS_THREADSPOOL_H
 #define CHESS_THREADSPOOL_H
-#include <vector>
+#include "MyPriorityQueue.h"
+#include "Move.h"
 #include <queue>
+#include <future>
+#include <vector>
 #include <thread>
 #include <iostream>
 #include <functional>
 #include <condition_variable>
-#include <future>
-#include "MyPriorityQueue.h"
-#include "Move.h"
 
 /**
  * @brief Simple thread pool to run tasks in parallel.
