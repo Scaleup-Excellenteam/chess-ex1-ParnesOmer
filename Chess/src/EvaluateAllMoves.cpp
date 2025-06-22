@@ -1,9 +1,9 @@
-//
-// Created by omer on 5/13/2025.
-//
+////
+//// Created by omer on 5/13/2025.
+////
+
 
 #include "EvaluateAllMoves.h"
-
 
 // Constructor: initialize with board and depth
 EvaluateAllMoves::EvaluateAllMoves(int depth, const Board& board) : depth(depth), board(board){
@@ -23,22 +23,23 @@ MyPriorityQueue<std::unique_ptr<Move>> EvaluateAllMoves::evaluateAllMoves(int nu
     std::vector<std::future<void>> futures;
     std::atomic<bool> stopFlag{false}; // Used for early exit if high score found
 
-    // Launch a job for each move
+    // Launch a job for each move with separate board copy per thread
     for (auto& move : allValidMoves) {
         Move moveCopy = *move;
-        auto job = [this, moveCopy, &resultQueue, &stopFlag]() mutable {
+        auto job = [moveCopy, &resultQueue, &stopFlag, originalBoard = this->board, depth = this->depth]() mutable {
             if (stopFlag.load()) return;
-            Board privateBoard = this->board;
-            EvaluateAllMoves evaluator(this->depth, privateBoard);
-            int score = evaluator.evaluateOneMove(&moveCopy, this->depth);
+
+            // Create separate evaluator for this thread
+            EvaluateAllMoves evaluator(depth, originalBoard);
+            int score = evaluator.minimaxEvaluateMove(&moveCopy, depth);
             moveCopy.setScore(score);
+
             // Early exit if a "winning" move is found
-            if (score >= Constants::HIGH_SCORE_THRESHOLD) {
+            if (score >= Constants::HIGH_SCORE_THRESHOLD) { // Mate or near-mate score
                 stopFlag.store(true);
             }
-            if (score >= 0) {
-                resultQueue.push(std::make_unique<Move>(moveCopy));
-            }
+
+            resultQueue.push(std::make_unique<Move>(moveCopy));
         };
         futures.push_back(pool.enqueue(job));
     }
@@ -48,7 +49,7 @@ MyPriorityQueue<std::unique_ptr<Move>> EvaluateAllMoves::evaluateAllMoves(int nu
         f.get();
     }
 
-    // Collect results into a priority queue (not thread-safe)
+    // Collect results into a priority queue
     MyPriorityQueue<std::unique_ptr<Move>> topMoves;
     while (!resultQueue.empty()) {
         try {
@@ -63,6 +64,8 @@ MyPriorityQueue<std::unique_ptr<Move>> EvaluateAllMoves::evaluateAllMoves(int nu
 // Generate all legal moves for the current player
 vector<std::unique_ptr<Move>> EvaluateAllMoves::getAllValidMoves() {
     vector<std::unique_ptr<Move>> allValidMoves;
+    allValidMoves.reserve(50); // Pre-allocate typical number of moves
+
     for(int i = 0; i < 8; ++i) {
         for (int j = 0; j < 8; ++j) {
             Piece* pieceSource = (*tempBoard)[i][j];
@@ -79,133 +82,286 @@ vector<std::unique_ptr<Move>> EvaluateAllMoves::getAllValidMoves() {
             }
         }
     }
+
+    // Sort moves for better alpha-beta pruning
+    sortMovesByPriority(allValidMoves);
     return allValidMoves;
 }
 
-// Evaluate net threats created by a move (threats to enemy, dangers from enemy)
-int EvaluateAllMoves::moveMakeOrInThreats(Move* move, Piece* movedPiece) {
-    auto [endRow, endCol] = move->getEndPosition();
-    if(!movedPiece) return 0;
-    int threats = 0;
-    int dangers = 0;
-
-    for(int i = 0; i < 8; ++i) {
-        for(int j = 0; j < 8; ++j) {
-            Piece* enemyPiece = (*tempBoard)[i][j];
-            if(enemyPiece && enemyPiece->getColor() != movedPiece->getColor()) {
-                // Check if after the move, the piece threatens an enemy piece
-                if(tempBoard->isValidMove(endRow, endCol, i, j) > Constants::CHECK_STATUS) {
-                        threats += enemyPiece->getValue();
-                }
-                // Temporarily switch turn: can enemy threaten us?
-                tempBoard->changeTurn();
-                if(tempBoard->isValidMove(i, j, endRow, endCol) > Constants::CHECK_STATUS) {
-                        dangers += movedPiece->getValue();
-                }
-                tempBoard->changeTurn();
-            }
-        }
-    }
-    return threats - dangers;
+// Sort moves for better alpha-beta pruning
+void EvaluateAllMoves::sortMovesByPriority(vector<std::unique_ptr<Move>>& moves) {
+    std::sort(moves.begin(), moves.end(), [this](const std::unique_ptr<Move>& a, const std::unique_ptr<Move>& b) {
+        int scoreA = getMoveOrderingScore(a.get());
+        int scoreB = getMoveOrderingScore(b.get());
+        return scoreA > scoreB; // Higher score first
+    });
 }
 
-// Compute score for a move based on material, position, development, and threats
-int EvaluateAllMoves::getMoveScore(Move *move, Piece *target, Piece *source) {
-    auto [endRow, endCol] = move->getEndPosition();
+// Give priority scores for move ordering
+int EvaluateAllMoves::getMoveOrderingScore(Move* move) {
     auto [startRow, startCol] = move->getStartPosition();
+    auto [endRow, endCol] = move->getEndPosition();
+
+    Piece* source = (*tempBoard)[startRow][startCol];
+    Piece* target = (*tempBoard)[endRow][endCol];
+
     int score = 0;
 
-    if(move->getMoveStatus() == 41){
-        score += 10; // Bonus: gives check
-    }
-    if(target){
-        int captureValue = target->getValue();
-        // Bonus if small piece captures big piece
-        if(source->getValue() < target->getValue()) {
-            score += captureValue + (captureValue - source->getValue()) / 2;
-        } else {
-            score += captureValue;
-        }
-    }
-    // Center control bonus
-    if(endRow >= 2 && endRow <= 5 && endCol >= 2 && endCol <= 5) {
-        score += 2; // Add a score for control of the center
-        if(endRow >= 3 && endRow <= 4 && endCol >= 3 && endCol <= 4) {
-            score += 2;
-        }
-    }
-    // Net threats/dangers
-    int threatBalance  = moveMakeOrInThreats(move, source);
-    score += threatBalance ;
-
-    // Pawn promotion and advancement bonuses
-    if(source->getType() == PAWN) {
-        if(endRow == 0 || endRow == 7) {
-            score += 8; // Promotion
-        }
-        // Advancement
-        int advancement = (source->getColor() == WHITE) ? endRow - startRow : startRow - endRow;
-        if(advancement > 0) {
-            score += advancement; // More points for advancing further
-        }
+    // Prioritize captures
+    if (target != nullptr) {
+        score += target->getValue() * 100 - source->getValue(); // MVV-LVA
     }
 
-    // Development bonus: first move for knights/bishops
-    if(source->getType() == KNIGHT || source->getType() == BISHOP) {
-        if((source->getColor() == WHITE && startRow == 0) ||
-           (source->getColor() == BLACK && startRow == 7)) {
-            score += 3;
-        }
+    // Prioritize checks
+    int moveStatus = move->getMoveStatus();
+    bool isCheck = std::find(
+            std::begin(Constants::MADE_CHECK_CODES),
+            std::end(Constants::MADE_CHECK_CODES),
+            moveStatus) != std::end(Constants::MADE_CHECK_CODES);
+
+    if (isCheck) {
+        score += 50;
     }
-    // Penalty for early king moves ("unsafe king")
-    if(source->getType() == KING) {
-        if((source->getColor() == WHITE && startRow == 0) ||
-           (source->getColor() == BLACK && startRow == 7)) {
-            score -= 3;
-        }
+
+    // Prioritize center moves
+    if (endRow >= 3 && endRow <= 4 && endCol >= 3 && endCol <= 4) {
+        score += 10;
     }
-    // Activity bonus: reward moves that increase mobility from destination
-    int mobilityBonus = 0;
-    for(int i = 0; i < 8; i++) {
-        for(int j = 0; j < 8; j++) {
-            if(tempBoard->isValidMove(endRow, endCol, i, j) > Constants::CHECK_STATUS) {
-                mobilityBonus++;
-            }
-        }
-    }
-    score += mobilityBonus / 4;
 
     return score;
 }
 
-// Minimax-like move evaluation: recursively score moves for both sides
-int EvaluateAllMoves::evaluateOneMove(Move* move, int depth) {
-    int bestOpponentScore = INT_MIN; // Initialize to a very low value
+// Get positional bonus for a piece at a specific position
+int EvaluateAllMoves::getPositionalBonus(Piece* piece, int row, int col, bool isEndgame) {
+    int bonus = 0;
+    bool isMyPiece = (piece->getColor() == board.getTurn());
+
+    if(piece->getType() == PAWN) {
+        // Pawn advancement (max 0.7 points for reaching 7th rank)
+        int advancement = (piece->getColor() == WHITE) ? row : (7 - row);
+        bonus += isMyPiece ? (advancement * 10) : -(advancement * 10); // 0.1 per rank
+
+        // Near promotion bonus
+        if((piece->getColor() == WHITE && row == 6) ||
+           (piece->getColor() == BLACK && row == 1)) {
+            bonus += isMyPiece ? 200 : -200; // 2 points for near promotion
+        }
+
+        // Doubled pawn penalty
+        int frontRow = (piece->getColor() == WHITE) ? row + 1 : row - 1;
+        if(frontRow >= 0 && frontRow < 8) {
+            Piece* blockingPiece = (*tempBoard)[frontRow][col];
+            if(blockingPiece && blockingPiece->getType() == PAWN &&
+               blockingPiece->getColor() == piece->getColor()) {
+                bonus += isMyPiece ? -50 : 50; // 0.5 penalty for doubled pawns
+            }
+        }
+    }
+    else if(piece->getType() == KNIGHT || piece->getType() == BISHOP) {
+        // Development bonus
+        bool isDeveloped = !((piece->getColor() == WHITE && row == 0) ||
+                             (piece->getColor() == BLACK && row == 7));
+        if(isDeveloped) {
+            bonus += isMyPiece ? 30 : -30; // 0.3 points for development
+        }
+
+        // Center control for knights
+        if(piece->getType() == KNIGHT && row >= 2 && row <= 5 && col >= 2 && col <= 5) {
+            bonus += isMyPiece ? 20 : -20; // 0.2 points for centralized knight
+        }
+    }
+    else if(piece->getType() == KING) {
+        if(isEndgame) {
+            // Active king in endgame
+            if(row >= 2 && row <= 5 && col >= 2 && col <= 5) {
+                bonus += isMyPiece ? 50 : -50; // 0.5 points for active king
+            }
+        } else {
+            // King safety in middlegame
+            if((piece->getColor() == WHITE && row == 0) ||
+               (piece->getColor() == BLACK && row == 7)) {
+                if(col <= 2 || col >= 5) {
+                    bonus += isMyPiece ? 20 : -20; // 0.2 points for castled king
+                }
+            }
+        }
+    }
+
+    // Small center control bonus for all pieces
+    if(row >= 2 && row <= 5 && col >= 2 && col <= 5) {
+        bonus += isMyPiece ? 5 : -5; // 0.05 points for center presence
+        if(row >= 3 && row <= 4 && col >= 3 && col <= 4) {
+            bonus += isMyPiece ? 10 : -10; // Extra 0.1 for strong center
+        }
+    }
+
+    return bonus;
+}
+
+// King safety with caching
+int EvaluateAllMoves::getKingSafetyBonus(const vector<std::unique_ptr<Move>>& currentPlayerMoves,
+                                         const vector<std::unique_ptr<Move>>& enemyPlayerMoves) {
+    int bonus = 0;
+    int threatsOnMyKing = 0;
+    int threatsOnEnemyKing = 0;
+
+    // Count threats more efficiently
+    for (const auto& move : currentPlayerMoves) {
+        int codeResponse = move->getMoveStatus();
+        if (std::find(std::begin(Constants::MADE_CHECK_CODES),
+                      std::end(Constants::MADE_CHECK_CODES),
+                      codeResponse) != std::end(Constants::MADE_CHECK_CODES)) {
+            threatsOnEnemyKing++;
+        }
+    }
+
+    for (const auto& move : enemyPlayerMoves) {
+        int codeResponse = move->getMoveStatus();
+        if (std::find(std::begin(Constants::MADE_CHECK_CODES),
+                      std::end(Constants::MADE_CHECK_CODES),
+                      codeResponse) != std::end(Constants::MADE_CHECK_CODES)) {
+            threatsOnMyKing++;
+        }
+    }
+
+    // Reasonable check values
+    bonus += threatsOnEnemyKing * 100; // 1 point per check threat
+    bonus -= threatsOnMyKing * 100;   // -1 point per threat on my king
+
+    return bonus;
+}
+
+// Compute score with caching and early exit
+int EvaluateAllMoves::evaluateBoardPosition(Move *move, Piece *target, Piece *source) {
+    int score = 0;
+    int codeResponse = move->getMoveStatus();
+
+    bool madeCheck = std::find(
+            std::begin(Constants::MADE_CHECK_CODES),
+            std::end(Constants::MADE_CHECK_CODES),
+            codeResponse) != std::end(Constants::MADE_CHECK_CODES);
+
+    bool inCheck = tempBoard->King_in_check(tempBoard->getTurn());
+
+    // Check for mate/draw - but only generate moves once
+    vector<std::unique_ptr<Move>> currentPlayerMoves = getAllValidMoves();
+    if (currentPlayerMoves.empty()) {
+        if (inCheck) {
+            return (tempBoard->getTurn() == board.getTurn()) ? -10000 : 10000; // Mate score
+        } else {
+            return 0; // Draw
+        }
+    }
+
+    // Count pieces once
+    int totalPieces = 0;
+    int materialScore = 0;
+
+    for(int r = 0; r < 8; r++) {
+        for(int c = 0; c < 8; c++) {
+            Piece* piece = (*tempBoard)[r][c];
+            if(piece) {
+                totalPieces++;
+                int pieceValue = piece->getValue() * 100; // Convert to centi-points
+                if (piece->getColor() == board.getTurn()) {
+                    materialScore += pieceValue;
+                } else {
+                    materialScore -= pieceValue;
+                }
+
+                // Add positional bonus
+                score += getPositionalBonus(piece, r, c, totalPieces <= 10);
+            }
+        }
+    }
+
+    score += materialScore;
+
+    tempBoard->changeTurn();
+    vector<std::unique_ptr<Move>> opponentMoves = getAllValidMoves();
+    if (opponentMoves.empty()) {
+        if (madeCheck) {
+            tempBoard->changeTurn();
+            return (tempBoard->getTurn() == board.getTurn()) ? 10000 : -10000; // Mate score
+        }
+        else {
+            tempBoard->changeTurn();
+            return 0;
+        }
+    }
+    tempBoard->changeTurn();
+    // Mobility and king safety
+    size_t myMobility = currentPlayerMoves.size();
+    size_t opponentMobility = opponentMoves.size();
+
+    // King safety
+    score += getKingSafetyBonus(currentPlayerMoves, opponentMoves);
+
+    // Mobility bonus
+    int mobilityWeight = (totalPieces <= 10) ? 2 : 1; // Less important in opening
+    score += static_cast<int>(myMobility - opponentMobility) * mobilityWeight;
+
+    return score;
+}
+
+// Minimax evaluation with alpha-beta pruning
+int EvaluateAllMoves::minimaxEvaluateMove(Move* move, int depth, int alpha, int beta) {
     auto [startRow, startCol] = move->getStartPosition();
     auto [endRow, endCol] = move->getEndPosition();
 
-    Piece* source = tempBoard->getPieceWithePermission(startRow,startCol);
+    Piece* source = tempBoard->getPieceWithePermission(startRow, startCol);
     Piece* target = tempBoard->getPieceWithePermission(endRow, endCol);
 
     tempBoard->makeMove(source, startRow, startCol, endRow, endCol);
 
-    int score = getMoveScore(move, target, source); // Get the score for the move
+    int score = 0;
 
-    if(depth > 1) {
+    if(depth <= 1) {
+        score = evaluateBoardPosition(move, target, source);
+    }
+    else {
         tempBoard->changeTurn();
         vector<std::unique_ptr<Move>> opponentMoves = getAllValidMoves();
 
-        // Evaluate opponent's moves
-        for (auto& opponentMove: opponentMoves) {
-            int rivalScore = evaluateOneMove(opponentMove.get(), depth - 1);
-            bestOpponentScore = max(bestOpponentScore, rivalScore);
+        if(opponentMoves.empty()) {
+            // Handle mate/stalemate at deeper levels
+            bool inCheck = tempBoard->King_in_check(tempBoard->getTurn());
+            if(inCheck) {
+                score = (tempBoard->getTurn() == board.getTurn()) ? -10000 + depth : 10000 - depth;
+            } else {
+                score = 0; // Stalemate
+            }
         }
-        tempBoard->changeTurn();
+        else if(tempBoard->getTurn() == board.getTurn()) {
+            // Maximizing player
+            int maxEval = INT_MIN;
+            for (auto &opponentMove: opponentMoves) {
+                int evalScore = minimaxEvaluateMove(opponentMove.get(), depth - 1, alpha, beta);
+                maxEval = max(maxEval, evalScore);
+                alpha = max(alpha, evalScore);
 
-        // Subtract opponent's best possible counter
-        if(bestOpponentScore != INT_MIN) {
-            score -= bestOpponentScore;
+                if(beta <= alpha) {
+                    break; // Beta cutoff
+                }
+            }
+            score = maxEval;
         }
+        else {
+            // Minimizing player
+            int minEval = INT_MAX;
+            for (auto& opponentMove: opponentMoves) {
+                int evalScore = minimaxEvaluateMove(opponentMove.get(), depth - 1, alpha, beta);
+                minEval = min(minEval, evalScore);
+                beta = min(beta, evalScore);
+
+                if(beta <= alpha) {
+                    break; // Alpha cutoff
+                }
+            }
+            score = minEval;
+        }
+
+        tempBoard->changeTurn();
     }
 
     tempBoard->undoMove(source, target, startRow, startCol, endRow, endCol);
