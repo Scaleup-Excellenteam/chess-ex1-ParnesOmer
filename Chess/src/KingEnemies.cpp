@@ -4,28 +4,13 @@
 
 #include "KingEnemies.h"
 
-/**
- * Constructor for the KingEnemies class.
- * Initializes the class with the king's initial position.
- *
- * @param row The row position of the king.
- * @param col The column position of the king.
- */
+
 KingEnemies::KingEnemies(bool isWhite)  : isWhite(isWhite){}
 
-/**
- * Destructor for the KingEnemies class.
- * Frees all dynamically allocated memory for threat vectors.
- */
+
 KingEnemies::~KingEnemies() = default;
 
-/**
- * Helper function to copy the state of the KingEnemies object.
- * This function is not used in the current implementation but can be
- * useful for deep copying if needed in the future.
- *
- * @param other The KingEnemies object to copy from.
- */
+
 void KingEnemies::copyHelper(const KingEnemies &other) {
     isWhite = other.isWhite;
     for (const Piece* piece : other.threat_from_pawn) {
@@ -46,24 +31,11 @@ void KingEnemies::copyHelper(const KingEnemies &other) {
 }
 
 
-/**
- * Copy constructor for the KingEnemies class.
- * Performs a deep copy of all threat vectors and other members.
- *
- * @param other The KingEnemies object to copy from.
- */
 KingEnemies::KingEnemies(const KingEnemies& other){
     copyHelper(other);
 }
 
 
-/**
- * Copy assignment operator for the KingEnemies class.
- * Performs a deep copy of all threat vectors and other members.
- *
- * @param other The KingEnemies object to copy from.
- * @return A reference to the current KingEnemies object.
- */
 KingEnemies& KingEnemies::operator=(const KingEnemies& other) {
     if (this != &other) { // Check for self-assignment
         // Clear existing resources
@@ -79,28 +51,16 @@ KingEnemies& KingEnemies::operator=(const KingEnemies& other) {
     return *this;
 }
 
-/**
- * Gets the current position of the king based on its color.
- * If the king is white, it retrieves the white king's position; otherwise, it retrieves the black king's position.
- *
- * @param board The current state of the chessboard.
- * @return A pair representing the row and column of the king's position.
- */
+
 pair<int, int> KingEnemies::getKingPosition(const Board& board) const {
     if(isWhite) {
         return board.getWhiteKingPosition();
     } else {
         return board.getBlackKingPosition();
     }
-
 }
 
-/**
- * Updates the threats to the king by analyzing the entire chessboard.
- * Clears previous threats and recalculates based on the current state of the board.
- *
- * @param board The current state of the chessboard.
- */
+
 void KingEnemies::updateThreats(const Board& board) {
     // Clean up previous threats
     threat_from_pawn.clear();
@@ -135,16 +95,8 @@ void KingEnemies::updateThreats(const Board& board) {
     }
 }
 
-/**
- * Checks if the path between two positions is clear of any pieces.
- *
- * @param startRow The starting row.
- * @param startCol The starting column.
- * @param endRow The target row.
- * @param endCol The target column.
- * @param board The current state of the chessboard.
- * @return True if the path is clear, false otherwise.
- */bool KingEnemies::isPathClear(int startRow, int startCol, int endRow, int endCol, const Board& board) {
+
+bool KingEnemies::isPathClear(int startRow, int startCol, int endRow, int endCol, const Board& board) {
     int dx = (endRow - startRow) == 0 ? 0 : (endRow - startRow) / abs(endRow - startRow);
     int dy = (endCol - startCol) == 0 ? 0 : (endCol - startCol) / abs(endCol - startCol);
 
@@ -164,12 +116,7 @@ void KingEnemies::updateThreats(const Board& board) {
     return true; // The path is clear
 }
 
-/**
- * Determines if the king is currently in check.
- *
- * @param board The current state of the chessboard.
- * @return True if the king is in check, false otherwise.
- */
+
 bool KingEnemies::isKingInCheck(const Board& board) const {
     // Check for pawns and knights (doesn't need a clear path)
     if(!threat_from_pawn.empty() || !threat_from_knight.empty()){
@@ -206,16 +153,7 @@ bool KingEnemies::isKingInCheck(const Board& board) const {
     return false; // There is no active threat to the king
 }
 
-/**
- * Updates the threats when a piece is moved on the chessboard.
- *
- * @param movedPiece The piece that was moved.
- * @param oldRow The original row of the moved piece.
- * @param oldCol The original column of the moved piece.
- * @param newRow The new row of the moved piece.
- * @param newCol The new column of the moved piece.
- * @param board The current state of the chessboard.
- */
+
 void KingEnemies::updateThreatsOnMove(const Piece *movedPiece, int oldRow, int oldCol, int newRow, int newCol, const Board &board) {
     // 1. Removing the old threat (if any)
     if (movedPiece != nullptr) {

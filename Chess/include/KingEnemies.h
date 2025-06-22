@@ -8,7 +8,6 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
-using namespace std;
 
 class Piece;
 class Board;
@@ -19,36 +18,33 @@ class Board;
  * and determines if the king is in check.
  */
 class KingEnemies {
-    bool isWhite; ///< Indicates if the king is white or black
-    vector<const Piece*> threat_from_pawn;   ///< List of pawns threatening the king
-    vector<const Piece*> threat_from_queen;  ///< List of queens threatening the king
-    vector<const Piece*> threat_from_knight; ///< List of knights threatening the king
-    vector<const Piece*> threat_from_bishop; ///< List of bishops threatening the king
-    vector<const Piece*> threat_from_rook;   ///< List of rooks threatening the king
-
-    /// Copies threat data from another KingEnemies object.
-    void copyHelper(const KingEnemies& other);
-
-    /// Returns the king's current position for this color.
-    pair<int, int> getKingPosition(const Board& board) const;
-    /// Checks if the path between two positions is clear.
-    static bool isPathClear(int startRow, int startCol, int endRow, int endCol, const Board& board);
 public:
-    /// Constructor.
-    KingEnemies(bool isWhite);
-    /// Destructor.
+    explicit KingEnemies(bool isWhite);
     ~KingEnemies();
-    /// Copy constructor.
-    KingEnemies(const KingEnemies& other);
-    /// Copy assignment operator.
-    KingEnemies& operator=(const KingEnemies& other);
+    KingEnemies(const KingEnemies& other);              ///< Using copyHelper to copy the board state.
+    KingEnemies& operator=(const KingEnemies& other);   ///< Using copyHelper to copy the board state.
 
-    /// Updates the lists of threats based on the current board.
+    /// Updates the threats to the king by analyzing the entire chessboard.
     void updateThreats(const Board& board);
     /// Checks if the king is in check.
     bool isKingInCheck(const Board& board) const;
     /// Updates threats after a piece has moved.
     void updateThreatsOnMove(const Piece* movedPiece, int oldRow, int oldCol, int newRow, int newCol, const Board& board);
+
+private:
+
+    bool isWhite;                                    ///< Indicates if the king is white or black
+    std::vector<const Piece*> threat_from_pawn;      ///< List of pawns threatening the king
+    std::vector<const Piece*> threat_from_queen;     ///< List of queens threatening the king
+    std::vector<const Piece*> threat_from_knight;    ///< List of knights threatening the king
+    std::vector<const Piece*> threat_from_bishop;    ///< List of bishops threatening the king
+    std::vector<const Piece*> threat_from_rook;      ///< List of rooks threatening the king
+
+    /// Returns the king's current position for this color.
+    std::pair<int, int> getKingPosition(const Board& board) const;
+    /// Checks if the path between two positions is clear.
+    static bool isPathClear(int startRow, int startCol, int endRow, int endCol, const Board& board);
+    void copyHelper(const KingEnemies& other);
 };
 
 #endif //CHESS_KINGENEMIES_H
