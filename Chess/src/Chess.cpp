@@ -34,8 +34,7 @@ void Chess::setFrames() {
 	m_board[0][0] = 201;  m_board[0][20] = 187;
 	m_board[20][0] = 200; m_board[20][20] = 188;
 
-	for (size_t i = 1; i < 20; ++i)
-	{
+	for (size_t i = 1; i < 20; ++i) {
 		m_board[0][i] = 205;
 		m_board[20][i] = 205;
 		m_board[i][0] = 186;
@@ -45,8 +44,7 @@ void Chess::setFrames() {
 	m_board[2][2] = 218;  m_board[2][18] = 191;
 	m_board[18][2] = 192; m_board[18][18] = 217;
 
-	for (size_t i = 4; i < 17; i += 2)
-	{
+	for (size_t i = 4; i < 17; i += 2) {
 		m_board[2][i] = 194;
 		m_board[18][i] = 193;
 		m_board[i][2] = 195;
@@ -162,8 +160,7 @@ void Chess::setPieces() {
 
 
 // Display the board
-void Chess::show() const 
-{
+void Chess::show() const {
 	for (size_t row = 0; row < _SIZE; ++row)
 	{
 		for (size_t col = 0; col < _SIZE; ++col)
@@ -172,11 +169,9 @@ void Chess::show() const
 	}
 }
 // clear screen and print the board and the relevant msg 
-void Chess::displayBoard() const
-{
+void Chess::displayBoard() const {
 	show();
 	cout << m_msg<< m_errorMsg;
-	
 }
 
 // Display board and messages
@@ -206,68 +201,126 @@ bool Chess::isExit() const {
 }
 
 // Perform the move on the internal board string
-void Chess::excute() {
-	int row = (m_input[0] - 'a');
-	int col = (m_input[1] - '1');
-	char pieceInSource = m_boardString[(row * 8) + col]; 
-	m_boardString[(row * 8) + col] = '#'; 
+void Chess::excute(int codeResponse) {
+    // Handle pawn promotion
+    if(codeResponse >= Constants::PROMOTION_MOVE_QUEEN &&
+            codeResponse <= Constants::PROMOTION_CHECK_MOVE_KNIGHT){
 
-	row = (m_input[2] - 'a');
-	col = (m_input[3] - '1');
-	m_boardString[(row * 8) + col] = pieceInSource; 
+        int startRow = (m_input[0] - 'a');
+        int startCol = (m_input[1] - '1');
+        char pieceInSource = m_boardString[(startRow * 8) + startCol];
+        m_boardString[(startRow * 8) + startCol] = '#';
 
+        int endRow = (m_input[2] - 'a');
+        int endCol = (m_input[3] - '1');
+        if(codeResponse == Constants::PROMOTION_MOVE_QUEEN || codeResponse == Constants::PROMOTION_CHECK_MOVE_QUEEN){
+            m_boardString[(endRow * 8) + endCol] = std::isupper(pieceInSource) ? 'Q' : 'q';
+        }
+        else if(codeResponse == Constants::PROMOTION_MOVE_ROOK || codeResponse == Constants::PROMOTION_CHECK_MOVE_ROOK){
+            m_boardString[(endRow * 8) + endCol] = std::isupper(pieceInSource) ? 'R' : 'r';
+        }
+        else if(codeResponse == Constants::PROMOTION_MOVE_BISHOP || codeResponse == Constants::PROMOTION_CHECK_MOVE_BISHOP){
+            m_boardString[(endRow * 8) + endCol] = std::isupper(pieceInSource) ? 'B' : 'b';
+        }
+        else if(codeResponse == Constants::PROMOTION_MOVE_KNIGHT || codeResponse == Constants::PROMOTION_CHECK_MOVE_KNIGHT){
+            m_boardString[(endRow * 8) + endCol] = std::isupper(pieceInSource) ? 'N' : 'n';
+        }
+    }
+    // Handle castling moves
+    else if(codeResponse >= Constants::CASTLE_RIGHT_NO_CHECK &&
+            codeResponse <= Constants::CASTLE_LEFT_WITH_CHECK){
+
+        int startRow = (m_input[0] - 'a');
+        int startCol = (m_input[1] - '1');
+        char pieceInSource = m_boardString[(startRow * 8) + startCol];
+        m_boardString[(startRow * 8) + startCol] = '#';
+
+        int endRow = (m_input[2] - 'a');
+        int endCol = (m_input[3] - '1');
+        if(codeResponse == Constants::CASTLE_RIGHT_NO_CHECK || codeResponse == Constants::CASTLE_RIGHT_WITH_CHECK){
+            m_boardString[(endRow * 8) + endCol] = pieceInSource;
+            m_boardString[(endRow * 8) + (endCol - 1)] = std::isupper(pieceInSource) ? 'R' : 'r';
+            m_boardString[(endRow * 8) + (endCol + 1)] = '#'; // Clear the square between king and rook
+        }
+        else if (codeResponse == Constants::CASTLE_LEFT_NO_CHECK || codeResponse == Constants::CASTLE_LEFT_WITH_CHECK){
+            m_boardString[(endRow * 8) + endCol] = pieceInSource;
+            m_boardString[(endRow * 8) + (endCol + 1)] = std::isupper(pieceInSource) ? 'R' : 'r';
+            m_boardString[(endRow * 8) + (endCol - 2)] = '#'; // Clear the square between king and rook
+        }
+    }
+    else{
+        int row = (m_input[0] - 'a');
+        int col = (m_input[1] - '1');
+        char pieceInSource = m_boardString[(row * 8) + col];
+        m_boardString[(row * 8) + col] = '#';
+
+        row = (m_input[2] - 'a');
+        col = (m_input[3] - '1');
+        m_boardString[(row * 8) + col] = pieceInSource;
+    }
 	setPieces(); 
 }
 
 // Handle move result codes, update messages, and switch turns if needed
-void Chess::doTurn() {
-	m_errorMsg = "\n"; 
-	switch (m_codeResponse)
+void Chess::doTurn(int codeResponse) {
+	m_errorMsg = "\n";
+    if(codeResponse == 0){
+        return; // No move made, exit early
+    }
+
+	switch (codeResponse)
 	{
-        case 11:
+        case Constants::EMPTY_SOURCE:
         {
             m_msg = "there is not piece at the source \n";
             break;
         }
-        case 12:
+        case Constants::OPPONENT_PIECE:
         {
             m_msg = "the piece in the source is piece of your opponent \n";
             break;
         }
-        case 13:
+        case Constants::SAME_COLOR_PIECE:
         {
             m_msg = "there one of your pieces at the destination \n";
             break;
         }
-        case 21:
+        case Constants::ILLEGAL_MOVE:
         {
             m_msg = "illegal movement of that piece \n";
             break;
         }
-        case 31:
+        case Constants::CHECKMATE_MOVE:
         {
             m_msg = "this movement will cause you checkmate \n";
             break;
         }
-        case 41:
+        case Constants::MOVE_MADE_CHECK:
         {
-            excute();
+            excute(codeResponse);
             m_turn = !m_turn;
             m_msg = "the last movement was legal and cause check \n";
             break;
         }
-        case 42:
+        case Constants::LEGAL_MOVE:
         {
-            excute();
+            excute(codeResponse);
             m_turn = !m_turn;
             m_msg = "the last movement was legal \n";
+            break;
+        }
+        default:
+        {
+            excute(codeResponse);
+            m_turn = !m_turn;
+            m_msg = "the last movement was legal \nCode response:" + std::to_string(codeResponse) + "\n";
             break;
         }
 	}
 }
 
 // Constructor
-Chess::Chess(const string& start) : m_boardString(start),m_codeResponse(-1) {
+Chess::Chess(const string& start) : m_boardString(start){
 	setFrames();
 	setPieces();
 }
@@ -283,9 +336,9 @@ void Chess::normalizeMove(std::string& move) {
 }
 
 // Read user or auto move input; validate and normalize
-string Chess::getInput(bool isAutoMode, const std::string& autoMove) {
+string Chess::getInput(int codeResponse, bool isAutoMode, const std::string& autoMove) {
     if(isAutoMode) {
-        doTurn();
+        doTurn(codeResponse);
         displayBoard();
         showAskInput();
         m_input = autoMove;
@@ -297,7 +350,7 @@ string Chess::getInput(bool isAutoMode, const std::string& autoMove) {
         if (isFirst)
             isFirst = false;
         else
-            doTurn();
+            doTurn(codeResponse);
 
         displayBoard();
         showAskInput();
@@ -321,14 +374,6 @@ string Chess::getInput(bool isAutoMode, const std::string& autoMove) {
     return m_input;
 }
 
-// Set the response code for the last move
-void Chess::setCodeResponse(int codeResponse) {
-	if (((11 <= codeResponse) && (codeResponse <= 13)) ||
-		((21 == codeResponse) || (codeResponse == 31)) ||
-		((41 == codeResponse) || (codeResponse == 42)))
-		m_codeResponse = codeResponse;
-}
-
 // Ask the user for the search depth (plies)
 int Chess::askSearchDepth() {
     int searchDepth;
@@ -342,34 +387,66 @@ int Chess::askSearchDepth() {
 // Ask the user for the game mode (automatic/manual)
 int Chess::askGameMode() {
     int gameMode;
-    std::cout << "Select game mode: (1) Automatic  (2) Manual input: " << std::endl;
-    while (cin >> gameMode && (gameMode != Constants::AUTOMATIC_MODE && gameMode != Constants::MANUAL_MODE)) {
+    std::cout << "Select game mode: (1) Against the computer  (2) Two players: " << std::endl;
+    while (cin >> gameMode && (gameMode != Constants::AGAINST_THE_COMPUTER && gameMode != Constants::TOW_PLAYERS)) {
         std::cout << "Please select a valid game mode (1 or 2): " << std::endl;
     }
     return gameMode;
 }
 
-// Automatic geme mode
-void Chess::autoPlay(int searchDepth, int numMoves, int numThreads) {
-    std::cout << "Automatic mode selected. The AI will play against itself." << std::endl;
+// Against the computer
+void Chess::againstTheComputer(int searchDepth, int numThreads) {
+    std::cout << "Against The Computer mode selected. The AI will play against you." << std::endl;
+    bool computerTurn = false;
     Board board;
-    std::string res = getInput(true, "b4d4"); // Manually set the first move for the auto to start
+    std::string res = getInput();
     int codeResponse = 0;
-    for (int i = 0; i < numMoves; ++i){
-        codeResponse = board.movePiece(res);  // move the piece and get the code response
-        setCodeResponse(codeResponse);
-        if(codeResponse > Constants::CHECK_STATUS) {
-            std::vector<string> moves = board.getTopMoves(numThreads, searchDepth);
-            if (moves.empty()) {
-                std::cout << "No moves available" << std::endl;
+    while (res != "exit") {
+        try {
+            codeResponse = board.movePiece(res); // move the piece and get the code response
+        }
+        catch (invalid_argument&) {
+            std::cout << "Invalid input !!" << std::endl;
+            res = getInput();
+            continue;
+        }
+
+        bool isInCheck = std::find(
+                std::begin(Constants::MADE_CHECK_CODES),
+                std::end(Constants::MADE_CHECK_CODES),
+                codeResponse) != std::end(Constants::MADE_CHECK_CODES);
+
+        if(codeResponse < Constants::CHECK_STATUS){
+            res = getInput(codeResponse);
+            continue;
+        }
+
+        // The move was legal, switch turns
+        computerTurn = !computerTurn;
+
+        // Show recommended moves
+        std::vector<string> moves = board.getTopMoves(numThreads,searchDepth);
+        if (moves.empty() && isInCheck) {
+            if(board.getTurn()) {
+                std::cout << "\nCheckmate!!! Black Won." << std::endl;
+                break;
+            } else if (!board.getTurn()) {
+                std::cout << "\nCheckmate!!! White Won." << std::endl;
                 break;
             }
+        }
+        if(computerTurn){
             printRecommendedMoves(moves);
-            // Take the first recommended move
             int spacePos = moves[0].find(' ');
-            res = getInput(true, moves[0].substr(0, spacePos));
+            res = getInput(codeResponse, true, moves[0].substr(0, spacePos));
+        }
+        else {
+            printRecommendedMoves(moves);
+            res = getInput(codeResponse);
         }
     }
+
+    std::cout << "\nExiting " << std::endl;
 }
 
 // Manual play mode
@@ -377,43 +454,44 @@ void Chess::manualPlay(int searchDepth, int numThreads) {
     std::cout << "Manual input mode selected. You can enter moves manually." << std::endl;
     Board board;
     int codeResponse = 0;
-    string res = getInput(false);
+    string res = getInput();
     while (res != "exit") {
         try {
             codeResponse = board.movePiece(res); // move the piece and get the code response
         }
         catch (invalid_argument&) {
             std::cout << "Invalid input !!" << std::endl;
-            res = getInput(false);
+            res = getInput();
             continue;
         }
 
-        setCodeResponse(codeResponse);
+        bool isInCheck = std::find(
+                std::begin(Constants::MADE_CHECK_CODES),
+                std::end(Constants::MADE_CHECK_CODES),
+                codeResponse) != std::end(Constants::MADE_CHECK_CODES);
+
         if(codeResponse > Constants::CHECK_STATUS) {  // if move was legal, show recommended moves
             std::vector<string> moves = board.getTopMoves(numThreads,searchDepth);
-            if (moves.empty()) {
-                std::cout << "No moves available" << std::endl;
+            if (moves.empty() && isInCheck) {
+                if(board.getTurn()) {
+                    std::cout << "\nCheckmate!!! Black Won." << std::endl;
+                    break;
+                } else if (!board.getTurn()) {
+                    std::cout << "\nCheckmate!!! White Won." << std::endl;
+                    break;
+                }
             }
             printRecommendedMoves(moves);
         }
-        res = getInput(false);
+        res = getInput(codeResponse);
     }
     std::cout << "\nExiting " << std::endl;
 }
 
 // Print the top 3 recommended moves
 void Chess::printRecommendedMoves(const vector<string> &moves) {
-    cout << "Recommended moves: " << endl;
+    std::cout << "\nTop three recommended moves: " << std::endl;
     for (const string &move: moves) {
-        cout << "\t" << move << endl;
+        std::cout << "\t- " << move << std::endl;
     }
-}
-
-// Measure time for automatic game (benchmark)
-double Chess::measureAutoGameTime(int searchDepth, int numMoves, int numThreads) {
-    auto start = std::chrono::high_resolution_clock::now();
-    autoPlay(searchDepth, numMoves, numThreads);
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    return elapsed.count();
 }
