@@ -36,6 +36,16 @@ add_executable (Chess
         src/Pawn.cpp
         include/KingEnemies.h
         src/KingEnemies.cpp
+        include/MyPriorityQueue.h
+        include/Move.h
+        src/MyPriorityQueue.cpp
+        src/Move.cpp
+        src/EvaluateAllMoves.cpp
+        include/EvaluateAllMoves.h
+        include/Exception.h
+        include/Constants.h
+        include/ThreadsPool.h
+        include/ThreadSafePriorityQueue.h
 )
 
 

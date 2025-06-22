@@ -1,155 +1,163 @@
-# Chess Game Parallel Engine
+# Chess Engine Project
 
-This project is an advanced C++ implementation of a chess engine, combining **object-oriented design**, **modular architecture**, and **parallel move evaluation** for high performance and extensibility.
+## Overview
 
----
+This project is a C++ chess engine and command-line game featuring:
 
-## Main Components
-
-### `Board`
-- **Responsibilities:**
-  - Manages the chessboard state: all pieces, their types, and positions.
-  - Controls turn management, move legality, move application and undo, pawn promotion, and threat detection.
-  - Tracks king positions and threats (via `KingEnemies`).
-  - Provides the interface to query and modify pieces and turn info.
-  - Integrates with the evaluation engine for top-move recommendations.
-- **Highlights:**
-  - Uses a 2D vector of `Piece*` for board representation.
-  - Efficiently applies and undoes moves, maintaining full game state.
-  - Validates complex chess rules (including check, checkmate, castling, etc.).
-
-### `Piece` and `KingEnemies`
-- **`Piece`:**
-  - Abstract base class for all chess pieces.
-  - Each derived piece (Pawn, Knight, Bishop, Rook, Queen, King) implements its own movement logic and value.
-- **`KingEnemies`:**
-  - Manages threat tracking to the kings for efficient legality checking (e.g., check, checkmate, stalemate).
-  - Used internally by `Board` for quick threat evaluation.
-
-### `Move`
-- **Responsibilities:**
-  - Represents a single chess move: start and end coordinates, move status, and evaluation score.
-  - Overloads `<` for sorting by move quality (priority).
-  - Provides easy access to move details and convenient printing.
-
-### `MyPriorityQueue` & `ThreadSafePriorityQueue`
-- **`MyPriorityQueue`:**
-  - Custom priority queue template for managing moves (or any pointer type) sorted by priority (score).
-  - Internally uses a sorted `std::list` for fast insertion and retrieval.
-  - Throws exceptions on invalid usage (e.g., pulling from an empty queue).
-  - Now uses smart pointers for robust memory management.
-- **`ThreadSafePriorityQueue`:**
-  - Thread-safe wrapper around `MyPriorityQueue`, using `std::mutex` for safe concurrent access.
-  - Used for parallel move evaluation when running with multiple threads.
-
-### `ThreadsPool`
-- **Responsibilities:**
-  - Simple thread pool for running tasks in parallel.
-  - Public API is thread-safe; manages worker threads, task queue, and graceful shutdown.
-  - Used to parallelize move evaluation in the engine.
-  - Implements stop flag and safe joining of threads (bonus).
-  - Easily configurable for different thread counts.
-
-### `EvaluateAllMoves`
-- **Responsibilities:**
-  - Evaluates all possible legal moves for the current player, scores them, and suggests the best options.
-  - Uses a minimax-like recursion (with user-defined depth) to consider both player's best responses.
-  - Can run move evaluations in parallel using the thread pool and thread-safe queue.
-  - Returns move recommendations for AI or hint features.
-
-### `Chess`
-- **Responsibilities:**
-  - Main interface for playing the game: manages game flow, user interaction, and board display.
-  - Allows for both automatic (AI vs AI) and manual (player vs player/computer) play modes.
-  - Handles user input, move validation, and displays the board and recommended moves.
-  - Provides tools for benchmarking (timing Auto-play with various thread counts).
+- **Full chess rules** (including castling, en passant, pawn promotion, check, and checkmate)
+- **Strong AI move recommendations** using a multithreaded, alpha-beta pruned minimax search
+- **Cross-platform command-line interface** with ASCII-art board
+- **Robust architecture** with clear separation between engine logic, AI, and user interface
 
 ---
 
-## Design Principles
+## Project Structure
 
-- **Object-Oriented:**
-  Each game concept (board, piece, move, evaluation, queue) is encapsulated in its own class, following SOLID principles.
-- **Efficiency:**
-  The evaluation engine avoids excessive copying by updating a temporary board in-place during move searches, and now supports parallel computation.
-- **Extensibility:**
-  The clean separation of logic allows for future enhancements (adding a GUI, network play, or advanced AI).
-- **Modular and Readable:**
-  Each component is in its own file/class, with clear responsibilities and documentation.
-- **Thread-Safety:**
-  All data structures used in parallel execution are protected for safe concurrent access.
-
----
-
-## How to Read and Extend the Code
-
-- **Start with `Board.h`:**
-  Understand how the game state and rules are enforced.
-- **Move to `Piece.h` and its derivatives:**
-  See how piece movements and values are implemented.
-- **Check `EvaluateAllMoves.h`:**
-  See how AI and move scoring is performed.
-- **Refer to `Move.h` and `MyPriorityQueue.h`:**
-  Learn how moves are represented and prioritized.
-- **Look at `ThreadsPool.h` and `ThreadSafePriorityQueue.h`:**
-  Understand parallelization and thread-safety.
-- **`Chess.h`:**
-  Main game loop, user interface, and integration of all components.
+- **Board**  
+  The core engine, representing the chessboard, game state, and move validation logic.
+- **Piece Hierarchy**  
+  Abstract base class (`Piece`) and derived classes (`Pawn`, `Knight`, etc.) encapsulate piece-specific rules.
+- **KingEnemies**  
+  Tracks threats to each king, detects checks and maintains king safety.
+- **Move & MyPriorityQueue**  
+  Represents chess moves and provides a priority queue for ranking moves by evaluation.
+- **EvaluateAllMoves**  
+  **The AI brain.** Evaluates all legal moves using parallelized minimax with alpha-beta pruning to recommend the best moves.
+- **ThreadsPool**  
+  Generic thread pool for efficient parallel evaluation of moves.
+- **Constants & Exceptions**  
+  Centralized constants and robust error handling.
+- **Chess (UI)**  
+  Handles user interface, board display, and user input.
+- **main.cpp**  
+  Entry point.
 
 ---
 
-## Usage
+## Core Flow
 
-- **Build** with CMake (recommended):
-  ```
-  mkdir build
-  cd build
-  cmake ..
-  make
-  ```
-- **Run:**
-  ```
-  ./chess
-  ```
-- **Select Mode:**
-  - **Automatic:** Let the AI play against itself, measuring run time with different thread counts (for benchmarking).
-  - **Manual:** Enter moves as a player; get move validation and AI hints.
-- **Extend:**
-  Modify `EvaluateAllMoves` for advanced AI, or `Chess` for different UI or networking.
+1. **Startup:**  
+   User selects search depth and play mode (Human vs. AI or Human vs. Human).
+2. **Game Loop:**
+  - User inputs a move (validated and executed).
+  - If AI is playing, it computes and plays the best move.
+  - After each move, the board is updated and top move recommendations are displayed.
+3. **AI Engine:**  
+   For each possible legal move, the AI:
+  - Simulates the move on a separate board copy.
+  - Recursively evaluates the resulting positions to a user-specified depth (plies), using minimax with alpha-beta pruning.
+  - Evaluates and scores each position (material, position, king safety, mobility, etc.).
+  - Runs evaluations in parallel using a thread pool for speed.
+  - Ranks moves and recommends the best options.
 
 ---
 
-## Benchmark Results
+## Key Components
 
-**Measured at depth 3:**
+### Board
 
-| Threads | Time (sec)  |
-|---------|-------------|
-| 1       | 1.9578      |
-| 2       | 1.07567     |
-| 4       | 0.716098    |
-| 8       | 0.513724    |
+- Manages the full game state, move validation (including special moves and checks), and piece placement.
+- Provides methods to validate, execute, and undo moves, as well as to query legal moves and game status.
 
-*Parallel move evaluation achieves significant speedup as thread count increases.*
+### Piece Hierarchy
 
----
+- Abstract `Piece` base class and derived classes for every chess piece.
+- Each piece implements its specific movement and threat-checking logic, enabling polymorphic behavior.
 
-## Extensibility
+### KingEnemies
 
-- **Add a GUI:**
-  The current CLI can be replaced or extended with a graphical interface.
-- **Advanced AI:**
-  Plug in more sophisticated evaluation or search algorithms.
-- **Network Play:**
-  Add online multiplayer support by building on the clean, modular engine.
+- Tracks all threats on each king.
+- Efficiently updates after every move and determines if the king is in check.
+
+### Move & MyPriorityQueue
+
+- `Move` objects store all relevant information for a single move, including source, destination, type, and evaluation score.
+- `MyPriorityQueue` maintains a sorted list of top moves for fast retrieval and recommendation.
 
 ---
 
-## Notes
+### **EvaluateAllMoves – The AI Brain** (Key Component)
 
-- The implementation assumes `Piece` and `KingEnemies` classes exist and implement required chess logic for each piece and threat tracking.
-- All core logic is easily testable and maintainable due to strong modularity.
+This class computes the best moves using an advanced, efficient, and scalable search:
+
+- **Move Generation:**  
+  Generates all legal moves for the current player.
+- **Minimax + Alpha-Beta Pruning:**  
+  Recursively evaluates each move using a minimax algorithm, pruning unpromising branches to improve speed.
+- **Position Evaluation:**  
+  Scores each resulting position based on:
+  - Material balance (using chess piece values)
+  - Positional bonuses (center control, pawn structure, king safety, piece activity)
+  - King threats (checks, checkmate detection)
+  - Mobility (number of available moves)
+- **Parallelization:**  
+  Distributes move evaluations across multiple threads, dramatically speeding up analysis.
+- **Early Exit:**  
+  If a forced mate or overwhelmingly strong move is found, the search may exit early for efficiency.
+- **Move Ordering:**  
+  Prioritizes promising moves (captures, checks, centralization) to maximize pruning effectiveness.
+
+#### Example: How AI Suggests a Move
+
+1. **Generate all valid moves** for the current player.
+2. **Evaluate each move in parallel threads** up to the chosen depth.
+3. **For each move:**
+  - Simulate the move on a temporary board.
+  - Recursively evaluate all possible responses.
+  - Assign a score to each move based on the resulting position.
+4. **Rank moves and recommend the top choices** to the player.
 
 ---
 
-For any questions or suggestions, please refer to the code comments or open an issue.
+### ThreadsPool
+
+- Implements a thread pool to manage concurrent execution of move evaluations.
+- Ensures thread-safe task management and efficient CPU usage.
+
+---
+
+### User Interface (Chess & main.cpp)
+
+- Renders the board in the terminal (supports Windows and Unix).
+- Handles all user input and output, including move entry, validation, and display of recommended moves.
+- Supports both human vs. AI and two-player modes.
+
+---
+
+## Error Handling & Constants
+
+- All error codes and magic numbers are managed in the `Constants` namespace.
+- Custom exceptions provide clear, informative errors for invalid moves, out-of-range accesses, and queue operations.
+
+---
+
+## Example Usage
+
+```bash
+$ ./chess
+Enter search depth (how many moves ahead to calculate):
+3
+Select game mode: (1) Against the computer  (2) Two players:
+1
+Recommended moves:
+    e2e4
+    d2d4
+    g1f3
+Player 1 (White - Capital letters) >> e2e4
+...
+Checkmate!!! Black Won.
+Exiting
+```
+
+---
+
+## Summary
+
+This project demonstrates a robust, efficient, and user-friendly chess engine, built with clean C++ OOP principles and modern AI techniques.  
+The **EvaluateAllMoves** class, with its parallelized, alpha-beta pruned minimax search, is the heart of the engine, enabling strong AI play and fast move recommendations.
+
+---
+
+## Authors
+
+- Omer Parnes
