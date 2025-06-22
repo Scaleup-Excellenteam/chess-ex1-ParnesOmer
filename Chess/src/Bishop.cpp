@@ -14,21 +14,11 @@
  */
 Bishop::Bishop(int i, int j, PieceColor color) : Piece(i, j, color, BISHOP) {}
 
-/**
- * Checks if the bishop's move is valid according to chess rules.
- * A bishop moves diagonally any number of squares, as long as the path is clear.
- *
- * @param startRow The starting row of the bishop.
- * @param startCol The starting column of the bishop.
- * @param endRow The target row of the bishop.
- * @param endCol The target column of the bishop.
- * @param board The current state of the chessboard.
- * @return True if the move is valid, false otherwise.
- */
+
 bool Bishop::isValidMove(int startRow, int startCol, int endRow, int endCol, const Board &board) const {
     // Calculate the difference between the coordinates
-    int dx = abs(endRow - startRow);
-    int dy = abs(endCol - startCol);
+    int dx = std::abs(endRow - startRow);
+    int dy = std::abs(endCol - startCol);
 
     //Checks if the move is diagonal
     if (dx != dy) {
@@ -53,20 +43,20 @@ bool Bishop::isValidMove(int startRow, int startCol, int endRow, int endCol, con
     return true;
 }
 
-/**
- * Determines if the bishop is threatening the enemy king's position.
- * A bishop threatens the king if the king is in any diagonal path from the bishop.
- *
- * @param myRow The current row of the bishop.
- * @param myCol The current column of the bishop.
- * @param EnemyKingRow The row position of the enemy king.
- * @param EnemyKingCol The column position of the enemy king.
- * @return True if the bishop is threatening the enemy king, false otherwise.
- */
+
 bool Bishop::isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const {
-    int dx = abs(EnemyKingRow - myRow);
-    int dy = abs(EnemyKingCol - myCol);
+    // A bishop threatens the king if the king is in any diagonal path from the bishop.
+    int dx = std::abs(EnemyKingRow - myRow);
+    int dy = std::abs(EnemyKingCol - myCol);
 
     //Checks if the move is diagonal
     return (dx == dy);
+}
+
+int Bishop::getValue() const {
+    return Constants::BISHOP_VALUE;
+}
+
+Piece *Bishop::clone() const {
+    return new Bishop(*this);
 }

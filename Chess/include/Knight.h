@@ -13,32 +13,17 @@
 class Knight : public Piece{
 public:
     Knight(int i, int j, PieceColor color);
-    /**
-     * Default destructor for the Knight class.
-     * Since the Knight class does not allocate dynamic resources, the default destructor is sufficient.
-     */
     ~Knight() override = default;
 
+    /// Checks if the knight's move is valid according to chess rules.
     bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
-
+    /// Determines if the knight is threatening the enemy king's position.
     bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
 
-    /**
-     * Gets the value of the knight piece.
-     *
-     * @return
-     */
-    int getValue() const override {
-        return 3;
-    }
-    /**
-     * Clones the Knight object.
-     * @return A pointer to the cloned Knight object.
-     */
-    Piece* clone() const override {
-        return new Knight(*this);
-    }
+    /// Gets the value of the Knight piece.
+    int getValue() const override;
+    /// Clones the Knight piece.
+    Piece* clone() const override;
 };
-
 
 #endif //CHESS_KNIGHT_H

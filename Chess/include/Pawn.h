@@ -14,35 +14,19 @@
 class Pawn : public Piece{
 public:
     Pawn(int i, int j, PieceColor color);
-    /**
-     * Default destructor for the Pawn class.
-     * Since the Pawn class does not allocate dynamic resources, the default destructor is sufficient.
-     */
     ~Pawn() override = default;
 
-
+    /// Checks if the pawn's move is valid according to chess rules.
     bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
-
+    /// Determines if the pawn is threatening the enemy king's position.
     bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
-
+    /// Checks if the pawn is making its first move.
     static bool isFirstMove(PieceColor color, int row);
 
-    /**
-     * Gets the value of the Pawn piece.
-     *
-     * @return
-     */
-    int getValue() const override {
-        return 1;
-    }
-    /**
-     * Clones the Pawn object.
-     * @return A pointer to the cloned Pawn object.
-     */
-    Piece* clone() const override {
-        return new Pawn(*this);
-    }
+    /// Gets the value of the Pawn piece.
+    int getValue() const override;
+    /// Clones the Pawn piece.
+    Piece* clone() const override;
 };
-
 
 #endif //CHESS_PAWN_H

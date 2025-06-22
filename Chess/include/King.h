@@ -14,34 +14,17 @@
 class King : public Piece{
 public:
     King(int i, int j, PieceColor color);
-    /**
-     * Default destructor for the King class.
-     * Since the King class does not allocate dynamic resources, the default destructor is sufficient.
-     */
     ~King() override = default;
 
+    /// Checks if the king's move is valid according to chess rules.
     bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
+    /// Determines if the king is threatening the enemy king's position.
     bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
 
-    /**
-     * Gets the value of the Bishop piece.
-     *
-     * @return
-     */
-    int getValue() const override {
-        // The king is the most valuable piece but has a value of 0 in terms of scoring
-        // because it cannot be captured like other pieces.
-        // and check is calculate in a different place using the move status.
-        return 0;
-    }
-    /**
-     * Clones the King object.
-     * @return A pointer to the cloned King object.
-     */
-    Piece* clone() const override {
-        return new King(*this);
-    }
+    /// Gets the value of the King piece.
+    int getValue() const override;
+    /// Clones the King piece.
+    Piece* clone() const override;
 };
-
 
 #endif //CHESS_KING_H

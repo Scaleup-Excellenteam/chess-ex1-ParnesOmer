@@ -13,31 +13,16 @@
 class Rook : public Piece{
 public:
     Rook(int i, int j, PieceColor color);
-    /**
-     * Default destructor for the Rook class.
-     * Since the Rook class does not allocate dynamic resources, the default destructor is sufficient.
-     */
     ~Rook() override = default;
 
     bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
-
+    /// Determines if the rook is threatening the enemy king's position.
     bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
 
-    /**
-     * Gets the value of the Rook piece.
-     *
-     * @return
-     */
-    int getValue() const override {
-        return 5;
-    }
-    /**
-     * Clones the Rook object.
-     * @return A pointer to the cloned Rook object.
-     */
-    Piece* clone() const override {
-        return new Rook(*this);
-    }
+    /// Gets the value of the Rook piece.
+    int getValue() const override;
+    /// Clones the Rook piece.
+    Piece* clone() const override;
 };
 
 #endif //CHESS_EX1_PARNESOMER_MAIN_ROOK_H

@@ -16,32 +16,17 @@
 class Queen : public Piece{
 public:
     Queen(int i, int j, PieceColor color);
-    /**
-     * Default destructor for the Queen class.
-     * Since the Queen class does not allocate dynamic resources, the default destructor is sufficient.
-     */
     ~Queen() override = default;
 
+    /// Checks if the queen's move is valid according to chess rules.
     bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const override;
-
+    /// Determines if the queen is threatening the enemy king's position.
     bool isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const override;
 
-    /**
-     * Gets the value of the Queen piece.
-     *
-     * @return
-     */
-    int getValue() const override {
-        return 9;
-    }
-    /**
-     * Clones the Queen object.
-     * @return A pointer to the cloned Queen object.
-     */
-    Piece* clone() const override {
-        return new Queen(*this);
-    }
+    /// Gets the value of the Queen piece.
+    int getValue() const override;
+    /// Clones the Queen piece.
+    Piece* clone() const override;
 };
-
 
 #endif //CHESS_QUEEN_H

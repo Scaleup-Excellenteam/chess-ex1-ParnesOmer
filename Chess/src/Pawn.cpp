@@ -14,16 +14,7 @@
  */
 Pawn::Pawn(int i, int j, PieceColor color) : Piece(i, j, color, PAWN){}
 
-/**
- * Validates if the pawn's move is legal according to chess rules.
- *
- * @param startRow The starting row of the pawn.
- * @param startCol The starting column of the pawn.
- * @param endRow The target row of the pawn.
- * @param endCol The target column of the pawn.
- * @param board The current state of the chessboard.
- * @return True if the move is valid, false otherwise.
- */
+
 bool Pawn::isValidMove(int startRow, int startCol, int endRow, int endCol, const Board &board) const {
     // Direction of movement (forward for white or backward for black)
     PieceColor myColor = this->getColor();
@@ -46,7 +37,7 @@ bool Pawn::isValidMove(int startRow, int startCol, int endRow, int endCol, const
     }
 
     // Eating diagonally
-    if (endRow == startRow + direction && abs(endCol - startCol) == 1) {
+    if (endRow == startRow + direction && std::abs(endCol - startCol) == 1) {
         const Piece* targetPiece = board.getPiece(endRow, endCol);
         if (targetPiece != nullptr && targetPiece->getColor() != this->getColor()) {
             return true; // Opponent's piece diagonally
@@ -57,35 +48,31 @@ bool Pawn::isValidMove(int startRow, int startCol, int endRow, int endCol, const
     return false;
 }
 
-/**
- * Determines if the pawn is threatening the enemy king's position.
- *
- * @param myRow The current row of the pawn.
- * @param myCol The current column of the pawn.
- * @param EnemyKingRow The row position of the enemy king.
- * @param EnemyKingCol The column position of the enemy king.
- * @return True if the pawn is threatening the enemy king, false otherwise.
- */
+
 bool Pawn::isThreat(int myRow, int myCol, int EnemyKingRow, int EnemyKingCol) const {
     // Direction of movement (forward for white or backward for black)
     int direction = (this->getColor() == WHITE) ? 1 : -1;
     // Eating diagonally
-    if (EnemyKingRow == myRow + direction && abs(EnemyKingCol - myCol) == 1) {
+    if (EnemyKingRow == myRow + direction && std::abs(EnemyKingCol - myCol) == 1) {
         return true; // Opponent's piece diagonally
     }
     return false;
 }
 
-/**
- * Checks if the pawn is making its first move.
- *
- * @param color The color of the pawn (WHITE or BLACK).
- * @param row The current row of the pawn.
- * @return True if the pawn is in its starting position, false otherwise.
- */
+
 bool Pawn::isFirstMove(PieceColor color, int row) {
     if(color == WHITE){
         return row == 1;
     }
     return row == 6;
+}
+
+
+int Pawn::getValue() const {
+    return Constants::PAWN_VALUE;
+}
+
+
+Piece *Pawn::clone() const {
+    return new Pawn(*this);
 }

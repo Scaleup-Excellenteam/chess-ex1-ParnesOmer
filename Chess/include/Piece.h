@@ -7,15 +7,14 @@
 #include "Board.h"
 #include "KingEnemies.h"
 #include <vector>
-using namespace std;
 
 class Board;
 class KingEnemies;
 
-// Enum representing the color of a chess piece.
+/// Enum representing the color of a chess piece.
 enum PieceColor { WHITE = 1, BLACK = 0};
 
-// Enum representing the type of chess piece.
+/// Enum representing the type of chess piece.
 enum PieceType { PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING };
 
 
@@ -25,11 +24,6 @@ enum PieceType { PAWN, ROOK, KNIGHT, BISHOP, QUEEN, KING };
  * for determining valid moves and threats to the king.
  */
 class Piece {
-    PieceColor color;
-protected:
-    PieceType type;
-    int currentX;
-    int currentY;
 public:
     explicit Piece(int startRow, int startCol , PieceColor color, PieceType type);
     virtual ~Piece() = default;
@@ -37,22 +31,24 @@ public:
     Piece(const Piece& other);
     Piece& operator=(const Piece& other);
 
-    /**
-     * Pure virtual method for cloning the piece.
-     */
-    virtual Piece* clone() const = 0;
-
     PieceColor getColor() const;
     PieceType getType() const;
-    virtual int getValue() const = 0;
     int getX() const;
     int getY() const;
-    void setNewCell(int x, int y);
+    void setNewCell(int x, int y);       /// Updates the position of the piece to a new cell.
 
+    virtual Piece* clone() const = 0;    /// Pure virtual method for cloning the piece.
+    virtual int getValue() const = 0;
     virtual bool isValidMove(int startRow, int startCol, int endRow, int endCol, const Board& board) const = 0;
     virtual bool isThreat(int myRow, int myCol, int KingRow, int KingCol) const = 0;
+
+protected:
+    PieceType type;     /// Type of the piece.
+    int currentX;       /// Current X(row) of the piece on the board.
+    int currentY;       /// Current Y(column) of the piece on the board.
+
+private:
+    PieceColor color;   /// Color of the piece.
 };
-
-
 
 #endif //CHESS_PIECE_H
