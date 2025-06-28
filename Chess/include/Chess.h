@@ -4,7 +4,10 @@
 #include <Windows.h>
 #endif
 
+#include "Constants.h"
+#include "Board.h"
 #include <string>
+#include <chrono>
 
 using std::cout;
 using std::cin; 
@@ -20,7 +23,6 @@ class Chess {
 	string m_input;
 	string m_msg = "\n";
 	string m_errorMsg = "\n";
-	int m_codeResponse;
 
 	void clear() const;
 	void setFrames();
@@ -31,13 +33,21 @@ class Chess {
 	bool isSame() const;
 	bool isValid() const;
 	bool isExit() const;
-	void excute();
-	void doTurn();
+	void excute(int codeResponse);
+	void doTurn(int codeResponse);
 
 public:
 	Chess(const string& start = "RNBQKBNRPPPPPPPP################################pppppppprnbqkbnr");
 	Chess(const Chess&)=delete;
 	Chess& operator=(const Chess&) = delete;
-	string getInput();
-	void setCodeResponse(int codeResponse);
+	string getInput(int codeResponse = 0, bool isAutoMode = false, const std::string& nextMove = "");
+
+    void normalizeMove(std::string& move);
+    int askSearchDepth();
+    int askGameMode();
+    void againstTheComputer(int searchDepth = Constants::DEFAULT_SEARCH_DEPTH, int numThreads = Constants::DEFAULT_NUM_THREADS);
+    void manualPlay(int searchDepth = Constants::DEFAULT_SEARCH_DEPTH, int numThreads = Constants::DEFAULT_NUM_THREADS);
+    void printRecommendedMoves(const vector<string>& moves);
+//    void autoPlay(int searchDepth, int numMoves, int numThreads);
+//    double measureAutoGameTime(int searchDepth, int numMoves, int numThreads);
 };
