@@ -32,6 +32,9 @@ MyPriorityQueue<std::unique_ptr<Move>> EvaluateAllMoves::evaluateAllMoves(int nu
             // Create separate evaluator for this thread
             EvaluateAllMoves evaluator(depth, originalBoard);
             int score = evaluator.minimaxEvaluateMove(&moveCopy, depth);
+            if(depth % 2 == 0) {
+                score = -score; // Negate score for opponent's turn
+            }
             moveCopy.setScore(score);
 
             // Early exit if a "winning" move is found
